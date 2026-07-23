@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>数独 — Sudoku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef1f3;
+    --paper-raised: #f7f9fa;
+    --ink: #1c2733;
+    --ink-soft: #4c5a68;
+    --ink-faint: #94a1ad;
+    --indigo: #2b4a6f;
+    --indigo-wash: #dde6ee;
+    --indigo-deep: #16324f;
+    --seal: #c73e2d;
+    --seal-soft: #f3ddd9;
+    --ok: #2e7d5b;
+    --line-thin: #b9c3cc;
+    --cell: clamp(34px, 9.6vmin, 56px);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(28,39,51,.045) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 12px 32px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .seal {
+    width: 46px;
+    height: 46px;
+    border: 2px solid var(--seal);
+    border-radius: 7px;
+    color: var(--seal);
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700;
+    font-size: 19px;
+    line-height: 1.05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    letter-spacing: 2px;
+    transform: rotate(-2deg);
+    background: var(--seal-soft);
+  }
+
+  .title-block h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    color: var(--indigo-deep);
+  }
+
+  .title-block .sub {
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  select, .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1.5px solid var(--indigo);
+    background: var(--paper-raised);
+    color: var(--indigo-deep);
+    border-radius: 6px;
+    padding: 7px 13px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  select:hover, .btn:hover { background: var(--indigo-wash); }
+
+  .btn-primary { background: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: var(--indigo-deep); }
+
+  select:focus-visible, .btn:focus-visible, .key:focus-visible {
+    outline: 2px solid var(--seal);
+    outline-offset: 2px;
+  }
+
+  .timer {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--ink-soft);
+    min-width: 62px;
+    text-align: center;
+    padding: 7px 4px;
+    border-bottom: 1.5px dashed var(--line-thin);
+  }
+
+  /* ---------- Board ---------- */
+  .board-wrap { position: relative; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(9, var(--cell));
+    grid-template-rows: repeat(9, var(--cell));
+    border: 3px solid var(--ink);
+    background: var(--paper-raised);
+    box-shadow: 4px 5px 0 rgba(22,50,79,.14);
+  }
+
+  .cellbox {
+    border-right: 1px solid var(--line-thin);
+    border-bottom: 1px solid var(--line-thin);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    font-family: 'Shippori Mincho', serif;
+    font-size: calc(var(--cell) * .52);
+    font-weight: 600;
+    color: var(--indigo);
+    transition: background .1s;
+  }
+
+  /* épaisseur "coup de pinceau" entre les blocs 3×3 */
+  .cellbox[data-c="2"], .cellbox[data-c="5"] { border-right: 2.5px solid var(--ink); }
+  .cellbox[data-r="2"], .cellbox[data-r="5"] { border-bottom: 2.5px solid var(--ink); }
+  .cellbox[data-c="8"] { border-right: none; }
+  .cellbox[data-r="8"] { border-bottom: none; }
+
+  .cellbox.given { color: var(--ink); font-weight: 700; }
+  .cellbox.peer  { background: #e6ebef; }
+  .cellbox.same  { background: var(--indigo-wash); }
+  .cellbox.selected {
+    background: var(--indigo-wash);
+    box-shadow: inset 0 0 0 2px var(--indigo);
+    z-index: 1;
+  }
+  .cellbox.error { color: var(--seal); }
+  .cellbox.error.selected { box-shadow: inset 0 0 0 2px var(--seal); }
+  .cellbox.hinted { animation: hintflash .8s ease; }
+
+  @keyframes hintflash {
+    0% { background: var(--seal-soft); }
+    100% { background: transparent; }
+  }
+
+  .notes {
+    position: absolute;
+    inset: 1px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: calc(var(--cell) * .22);
+    font-weight: 500;
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+  .notes span { display: flex; align-items: center; justify-content: center; }
+
+  /* ---------- Keypad ---------- */
+  .pad {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 6px;
+    width: calc(var(--cell) * 9 + 6px);
+    max-width: 100%;
+  }
+
+  .key {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--indigo-deep);
+    background: var(--paper-raised);
+    border: 1.5px solid var(--indigo);
+    border-radius: 6px;
+    padding: 10px 0;
+    cursor: pointer;
+    position: relative;
+    transition: background .12s;
+  }
+  .key:hover { background: var(--indigo-wash); }
+  .key:active { background: var(--indigo); color: #fff; }
+  .key .count {
+    position: absolute;
+    bottom: 2px;
+    right: 5px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    color: var(--ink-faint);
+  }
+  .key.done { opacity: .3; pointer-events: none; }
+
+  .tools {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: calc(var(--cell) * 9 + 6px);
+    max-width: 100%;
+  }
+
+  .tool {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    background: var(--paper-raised);
+    border: 1.5px solid var(--line-thin);
+    border-radius: 6px;
+    padding: 9px 4px;
+    cursor: pointer;
+    transition: border-color .12s, color .12s, background .12s;
+  }
+  .tool:hover { border-color: var(--indigo); color: var(--indigo-deep); }
+  .tool.active {
+    border-color: var(--seal);
+    color: var(--seal);
+    background: var(--seal-soft);
+  }
+  .tool:focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+
+  .status {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    min-height: 20px;
+    text-align: center;
+  }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .status.bad { color: var(--seal); font-weight: 600; }
+
+  /* ---------- Victoire ---------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(238,241,243,.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 5;
+  }
+  .overlay.show { display: flex; animation: fadein .4s ease; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+  .overlay .kanji {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 54px;
+    font-weight: 700;
+    color: var(--seal);
+    transform: rotate(-2deg);
+  }
+  .overlay .msg {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 20px;
+    color: var(--indigo-deep);
+  }
+  .overlay .time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 420px) {
+    header { gap: 10px; margin-bottom: 10px; }
+    .seal { width: 40px; height: 40px; font-size: 16px; }
+    .title-block h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal" aria-hidden="true">数独</div>
+  <div class="title-block">
+    <h1>Sudoku</h1>
+    <div class="sub">Un seul chiffre par ligne, colonne et bloc</div>
+  </div>
+</header>
+
+<div class="topbar">
+  <select id="difficulty" aria-label="Difficulté">
+    <option value="facile">Facile</option>
+    <option value="moyen" selected>Moyen</option>
+    <option value="difficile">Difficile</option>
+    <option value="expert">Expert</option>
+  </select>
+  <button class="btn btn-primary" id="newGame">Nouvelle grille</button>
+  <div class="timer" id="timer" aria-label="Chronomètre">00:00</div>
+</div>
+
+<div class="board-wrap">
+  <div class="board" id="board" role="grid" aria-label="Grille de sudoku"></div>
+  <div class="overlay" id="overlay">
+    <div class="kanji">完成</div>
+    <div class="msg">Grille résolue !</div>
+    <div class="time" id="finalTime"></div>
+    <button class="btn btn-primary" id="againBtn">Rejouer</button>
+  </div>
+</div>
+
+<div class="pad" id="pad"></div>
+
+<div class="tools">
+  <button class="tool" id="notesBtn" aria-pressed="false">✎ Notes</button>
+  <button class="tool" id="eraseBtn">⌫ Effacer</button>
+  <button class="tool" id="undoBtn">↩ Annuler</button>
+  <button class="tool" id="hintBtn">◎ Indice</button>
+</div>
+
+<div class="status" id="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Génération ----------
+  const N = 9;
+  const shuffled = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+  function isValid(g, r, c, v) {
+    for (let i = 0; i < N; i++) {
+      if (g[r][i] === v || g[i][c] === v) return false;
+    }
+    const br = r - r % 3, bc = c - c % 3;
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        if (g[br + i][bc + j] === v) return false;
+    return true;
+  }
+
+  function fillGrid(g) {
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (g[r][c] === 0) {
+        for (const v of shuffled([1,2,3,4,5,6,7,8,9])) {
+          if (isValid(g, r, c, v)) {
+            g[r][c] = v;
+            if (fillGrid(g)) return true;
+            g[r][c] = 0;
+          }
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // compte les solutions avec arrêt anticipé à 2
+  function countSolutions(g, limit = 2) {
+    let count = 0;
+    (function solve() {
+      if (count >= limit) return;
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        if (g[r][c] === 0) {
+          for (let v = 1; v <= 9; v++) {
+            if (isValid(g, r, c, v)) {
+              g[r][c] = v;
+              solve();
+              g[r][c] = 0;
+              if (count >= limit) return;
+            }
+          }
+          return;
+        }
+      }
+      count++;
+    })();
+    return count;
+  }
+
+  const TARGETS = { facile: 40, moyen: 34, difficile: 28, expert: 24 };
+
+  function generate(diff) {
+    const full = Array.from({ length: N }, () => Array(N).fill(0));
+    fillGrid(full);
+    const puzzle = full.map(r => [...r]);
+    const target = TARGETS[diff];
+    let givens = 81;
+    const cells = shuffled(Array.from({ length: 81 }, (_, i) => i));
+    for (const idx of cells) {
+      if (givens <= target) break;
+      const r = idx / 9 | 0, c = idx % 9;
+      const saved = puzzle[r][c];
+      if (saved === 0) continue;
+      puzzle[r][c] = 0;
+      if (countSolutions(puzzle.map(row => [...row])) !== 1) {
+        puzzle[r][c] = saved;
+      } else {
+        givens--;
+      }
+    }
+    return { puzzle, solution: full };
+  }
+
+  // ---------- État ----------
+  let solution, given, grid, notes;
+  let selected = null;
+  let notesMode = false;
+  let history = [];
+  let timerInt = null, seconds = 0, finished = false;
+
+  const boardEl = document.getElementById('board');
+  const padEl = document.getElementById('pad');
+  const statusEl = document.getElementById('status');
+  const timerEl = document.getElementById('timer');
+  const overlayEl = document.getElementById('overlay');
+  const notesBtn = document.getElementById('notesBtn');
+
+  // ---------- Construction du DOM ----------
+  const cellEls = [];
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const el = document.createElement('div');
+      el.className = 'cellbox';
+      el.dataset.r = r;
+      el.dataset.c = c;
+      el.setAttribute('role', 'gridcell');
+      el.tabIndex = -1;
+      el.addEventListener('click', () => selectCell(r, c));
+      boardEl.appendChild(el);
+      cellEls.push(el);
+    }
+  }
+
+  const keyEls = [];
+  for (let v = 1; v <= 9; v++) {
+    const k = document.createElement('button');
+    k.className = 'key';
+    k.innerHTML = v + '<span class="count"></span>';
+    k.addEventListener('click', () => inputValue(v));
+    padEl.appendChild(k);
+    keyEls.push(k);
+  }
+
+  // ---------- Rendu ----------
+  function render() {
+    const selVal = selected && grid[selected.r][selected.c] !== 0 ? grid[selected.r][selected.c] : 0;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const el = cellEls[r * 9 + c];
+      const v = grid[r][c];
+      el.classList.remove('given', 'selected', 'peer', 'same', 'error');
+      if (given[r][c]) el.classList.add('given');
+      if (selected) {
+        const s = selected;
+        if (s.r === r && s.c === c) el.classList.add('selected');
+        else if (s.r === r || s.c === c ||
+                 ((s.r / 3 | 0) === (r / 3 | 0) && (s.c / 3 | 0) === (c / 3 | 0)))
+          el.classList.add('peer');
+        if (selVal && v === selVal && !(s.r === r && s.c === c)) el.classList.add('same');
+      }
+      if (v !== 0) {
+        el.textContent = v;
+        if (v !== solution[r][c]) el.classList.add('error');
+      } else if (notes[r][c].size) {
+        el.textContent = '';
+        const n = document.createElement('div');
+        n.className = 'notes';
+        for (let d = 1; d <= 9; d++) {
+          const s = document.createElement('span');
+          s.textContent = notes[r][c].has(d) ? d : '';
+          n.appendChild(s);
+        }
+        el.appendChild(n);
+      } else {
+        el.textContent = '';
+      }
+    }
+    // compteurs de chiffres restants
+    const counts = Array(10).fill(0);
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (grid[r][c]) counts[grid[r][c]]++;
+    keyEls.forEach((k, i) => {
+      const remaining = 9 - counts[i + 1];
+      k.querySelector('.count').textContent = remaining || '';
+      k.classList.toggle('done', remaining === 0);
+    });
+  }
+
+  function selectCell(r, c) {
+    selected = { r, c };
+    render();
+  }
+
+  // ---------- Saisie ----------
+  function pushHistory(r, c) {
+    history.push({ r, c, v: grid[r][c], n: new Set(notes[r][c]) });
+    if (history.length > 500) history.shift();
+  }
+
+  function inputValue(v) {
+    if (!selected || finished) return;
+    const { r, c } = selected;
+    if (given[r][c]) return;
+    pushHistory(r, c);
+    if (notesMode) {
+      if (grid[r][c] !== 0) grid[r][c] = 0;
+      notes[r][c].has(v) ? notes[r][c].delete(v) : notes[r][c].add(v);
+    } else {
+      if (grid[r][c] === v) {
+        grid[r][c] = 0;
+      } else {
+        grid[r][c] = v;
+        notes[r][c].clear();
+        if (v === solution[r][c]) cleanPeerNotes(r, c, v);
+      }
+    }
+    render();
+    checkWin();
+  }
+
+  function cleanPeerNotes(r, c, v) {
+    for (let i = 0; i < N; i++) {
+      notes[r][i].delete(v);
+      notes[i][c].delete(v);
+    }
+    const br = r - r % 3, bc = c - c % 3;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) notes[br + i][bc + j].delete(v);
+  }
+
+  function erase() {
+    if (!selected || finished) return;
+    const { r, c } = selected;
+    if (given[r][c]) return;
+    pushHistory(r, c);
+    grid[r][c] = 0;
+    notes[r][c].clear();
+    render();
+  }
+
+  function undo() {
+    if (finished) return;
+    const h = history.pop();
+    if (!h) { setStatus('Rien à annuler'); return; }
+    grid[h.r][h.c] = h.v;
+    notes[h.r][h.c] = h.n;
+    selected = { r: h.r, c: h.c };
+    render();
+  }
+
+  function hint() {
+    if (finished) return;
+    const empties = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
+      if (grid[r][c] !== solution[r][c]) empties.push({ r, c });
+    if (!empties.length) return;
+    // priorité à la cellule sélectionnée si elle est vide ou fausse
+    let t = selected && grid[selected.r][selected.c] !== solution[selected.r][selected.c]
+      ? selected
+      : empties[Math.random() * empties.length | 0];
+    pushHistory(t.r, t.c);
+    grid[t.r][t.c] = solution[t.r][t.c];
+    notes[t.r][t.c].clear();
+    cleanPeerNotes(t.r, t.c, grid[t.r][t.c]);
+    selected = { r: t.r, c: t.c };
+    render();
+    cellEls[t.r * 9 + t.c].classList.add('hinted');
+    setTimeout(() => cellEls[t.r * 9 + t.c].classList.remove('hinted'), 800);
+    checkWin();
+  }
+
+  // ---------- Fin de partie ----------
+  function checkWin() {
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
+      if (grid[r][c] !== solution[r][c]) return;
+    finished = true;
+    clearInterval(timerInt);
+    document.getElementById('finalTime').textContent = 'Temps : ' + fmt(seconds);
+    overlayEl.classList.add('show');
+  }
+
+  // ---------- Chrono ----------
+  const fmt = s => String(s / 60 | 0).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  function startTimer() {
+    clearInterval(timerInt);
+    seconds = 0;
+    timerEl.textContent = '00:00';
+    timerInt = setInterval(() => { seconds++; timerEl.textContent = fmt(seconds); }, 1000);
+  }
+
+  function setStatus(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+    if (msg) setTimeout(() => { if (statusEl.textContent === msg) { statusEl.textContent = ''; statusEl.className = 'status'; } }, 2500);
+  }
+
+  // ---------- Nouvelle partie ----------
+  function newGame() {
+    const diff = document.getElementById('difficulty').value;
+    setStatus('Génération en cours…');
+    overlayEl.classList.remove('show');
+    // laisser le navigateur peindre avant le calcul
+    setTimeout(() => {
+      const { puzzle, solution: sol } = generate(diff);
+      solution = sol;
+      grid = puzzle.map(r => [...r]);
+      given = puzzle.map(r => r.map(v => v !== 0));
+      notes = Array.from({ length: N }, () => Array.from({ length: N }, () => new Set()));
+      history = [];
+      selected = null;
+      finished = false;
+      setStatus('');
+      render();
+      startTimer();
+    }, 30);
+  }
+
+  // ---------- Événements ----------
+  document.getElementById('newGame').addEventListener('click', newGame);
+  document.getElementById('againBtn').addEventListener('click', newGame);
+  document.getElementById('eraseBtn').addEventListener('click', erase);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('hintBtn').addEventListener('click', hint);
+  notesBtn.addEventListener('click', () => {
+    notesMode = !notesMode;
+    notesBtn.classList.toggle('active', notesMode);
+    notesBtn.setAttribute('aria-pressed', notesMode);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key >= '1' && e.key <= '9') { inputValue(+e.key); e.preventDefault(); }
+    else if (e.key === 'Backspace' || e.key === 'Delete') { erase(); e.preventDefault(); }
+    else if (e.key === 'n' || e.key === 'N') notesBtn.click();
+    else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { undo(); e.preventDefault(); }
+    else if (e.key.startsWith('Arrow')) {
+      if (!selected) { selectCell(4, 4); return; }
+      let { r, c } = selected;
+      if (e.key === 'ArrowUp') r = (r + 8) % 9;
+      if (e.key === 'ArrowDown') r = (r + 1) % 9;
+      if (e.key === 'ArrowLeft') c = (c + 8) % 9;
+      if (e.key === 'ArrowRight') c = (c + 1) % 9;
+      selectCell(r, c);
+      e.preventDefault();
+    }
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
