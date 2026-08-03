@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>橋 — Hashi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef1f3;
+    --paper-raised: #f7f9fa;
+    --water: #e4ebf0;
+    --ink: #1c2733;
+    --ink-soft: #4c5a68;
+    --ink-faint: #9aa7b2;
+    --indigo: #2b4a6f;
+    --indigo-wash: #dde6ee;
+    --indigo-deep: #16324f;
+    --seal: #c73e2d;
+    --seal-soft: #f3ddd9;
+    --ok: #2e7d5b;
+    --ok-soft: #dcece4;
+    --line-thin: #c2ccd4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(28,39,51,.045) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 12px 32px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+
+  .seal {
+    width: 46px; height: 46px;
+    border: 2px solid var(--seal);
+    border-radius: 7px;
+    color: var(--seal);
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(-2deg);
+    background: var(--seal-soft);
+  }
+
+  .title-block h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 26px; font-weight: 600;
+    letter-spacing: .5px;
+    color: var(--indigo-deep);
+  }
+  .title-block .sub {
+    font-size: 12px; color: var(--ink-soft);
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+
+  .topbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; flex-wrap: wrap; justify-content: center;
+  }
+
+  select, .btn, .tool {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    border: 1.5px solid var(--indigo);
+    background: var(--paper-raised);
+    color: var(--indigo-deep);
+    border-radius: 6px;
+    padding: 7px 13px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  select:hover, .btn:hover { background: var(--indigo-wash); }
+  .btn-primary { background: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: var(--indigo-deep); }
+  select:focus-visible, .btn:focus-visible, .tool:focus-visible {
+    outline: 2px solid var(--seal); outline-offset: 2px;
+  }
+
+  .timer {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; color: var(--ink-soft);
+    min-width: 62px; text-align: center;
+    padding: 7px 4px;
+    border-bottom: 1.5px dashed var(--line-thin);
+  }
+
+  /* ---------- Plateau ---------- */
+  .frame { position: relative; width: min(92vw, 560px); }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    background:
+      linear-gradient(rgba(43,74,111,.05) 1px, transparent 1px) 0 0 / 100% 11.11%,
+      var(--water);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 5px 0 rgba(22,50,79,.14);
+  }
+
+  .zone { stroke: transparent; cursor: pointer; }
+  .zone:hover { stroke: rgba(43,74,111,.14); }
+
+  .bridge {
+    stroke: var(--indigo-deep);
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+
+  .island-disc {
+    fill: var(--paper-raised);
+    stroke: var(--indigo-deep);
+    stroke-width: 2.5;
+    pointer-events: none;
+    transition: fill .2s, stroke .2s;
+  }
+  .island.done .island-disc { fill: var(--ok-soft); stroke: var(--ok); }
+  .island.over .island-disc { fill: var(--seal-soft); stroke: var(--seal); }
+
+  .island-num {
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700;
+    fill: var(--indigo-deep);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    transition: fill .2s;
+  }
+  .island.done .island-num { fill: var(--ok); }
+  .island.over .island-num { fill: var(--seal); }
+
+  .blocked-flash { animation: blockedflash .35s ease; }
+  @keyframes blockedflash {
+    0%, 100% { stroke: transparent; }
+    50% { stroke: rgba(199,62,45,.4); }
+  }
+
+  .tools {
+    margin-top: 14px;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  }
+  .tool { border-color: var(--line-thin); color: var(--ink-soft); }
+  .tool:hover { border-color: var(--indigo); color: var(--indigo-deep); background: var(--paper-raised); }
+
+  .status {
+    margin-top: 10px;
+    font-size: 13px; color: var(--ink-soft);
+    min-height: 20px; text-align: center;
+  }
+
+  .hint-bar {
+    margin-top: 6px; font-size: 12px; color: var(--ink-faint); text-align: center; max-width: 480px;
+  }
+
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(238,241,243,.9);
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; z-index: 5; text-align: center;
+  }
+  .overlay.show { display: flex; animation: fadein .4s ease both; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .overlay .kanji {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 48px; font-weight: 700;
+    color: var(--seal); transform: rotate(-2deg);
+  }
+  .overlay .msg { font-family: 'Shippori Mincho', serif; font-size: 20px; color: var(--indigo-deep); }
+  .overlay .time { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal" aria-hidden="true">橋</div>
+  <div class="title-block">
+    <h1>Hashi</h1>
+    <div class="sub">Reliez toutes les îles par des ponts</div>
+  </div>
+</header>
+
+<div class="topbar">
+  <select id="size" aria-label="Taille de grille">
+    <option value="7">Petit · 7×7</option>
+    <option value="9" selected>Moyen · 9×9</option>
+    <option value="11">Grand · 11×11</option>
+    <option value="13">Très grand · 13×13</option>
+  </select>
+  <button class="btn btn-primary" id="newGame">Nouvelle grille</button>
+  <div class="timer" id="timer">00:00</div>
+</div>
+
+<div class="frame">
+  <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="overlay" id="overlay">
+    <div class="kanji">完成</div>
+    <div class="msg">Toutes les îles sont reliées !</div>
+    <div class="time" id="finalTime"></div>
+    <button class="btn btn-primary" id="againBtn">Rejouer</button>
+  </div>
+</div>
+
+<div class="tools">
+  <button class="tool" id="undoBtn">↩ Annuler</button>
+  <button class="tool" id="clearBtn">⌫ Tout effacer</button>
+  <button class="tool" id="checkBtn">◎ Vérifier</button>
+</div>
+<div class="hint-bar">
+  Touchez l'espace entre deux îles pour poser un pont · retouchez pour le doubler · une troisième fois pour l'enlever
+</div>
+<div class="status" id="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Génération ----------
+  // On construit un réseau résolu : îles posées de proche en proche,
+  // reliées par 1 ou 2 ponts, sans croisement. Les chiffres en découlent.
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+  const rnd = n => Math.random() * n | 0;
+  const pairKey = (a, b) => a < b ? a + '-' + b : b + '-' + a;
+
+  function generate(size) {
+    const targetIslands = { 7: 8, 9: 12, 11: 17, 13: 23 }[size];
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const cellIsland = new Map();       // "x,y" -> index d'île
+      const islands = [];                 // {x, y}
+      const solBridges = new Map();       // pairKey -> 1|2
+      const bridgeCells = new Set();      // cellules intermédiaires occupées par un tracé
+
+      const addIsland = (x, y) => {
+        islands.push({ x, y });
+        cellIsland.set(x + ',' + y, islands.length - 1);
+        return islands.length - 1;
+      };
+
+      // cellules intermédiaires du segment (îles exclues)
+      const pathCells = (x1, y1, x2, y2) => {
+        const dx = Math.sign(x2 - x1), dy = Math.sign(y2 - y1);
+        const dist = Math.abs(x2 - x1) + Math.abs(y2 - y1);
+        const out = [];
+        for (let i = 1; i < dist; i++) out.push((x1 + dx * i) + ',' + (y1 + dy * i));
+        return out;
+      };
+
+      // un tracé est valide si aucune cellule intermédiaire ne contient
+      // une île ni n'appartient déjà à un autre tracé (gère à la fois
+      // les croisements perpendiculaires et les chevauchements colinéaires)
+      const pathIsFree = cells =>
+        cells.every(c => !cellIsland.has(c) && !bridgeCells.has(c));
+
+      const commitBridge = (a, b, cells) => {
+        solBridges.set(pairKey(a, b), 1 + rnd(2));
+        cells.forEach(c => bridgeCells.add(c));
+      };
+
+      addIsland(1 + rnd(size - 2), 1 + rnd(size - 2));
+
+      let stuck = 0;
+      while (islands.length < targetIslands && stuck < 300) {
+        stuck++;
+        const from = islands[rnd(islands.length)];
+        const [dx, dy] = DIRS[rnd(4)];
+        const dist = 2 + rnd(Math.max(1, size - 3));
+        const nx = from.x + dx * dist, ny = from.y + dy * dist;
+        if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+        if (cellIsland.has(nx + ',' + ny)) continue;
+        // la nouvelle île ne doit pas être posée sur un tracé existant
+        if (bridgeCells.has(nx + ',' + ny)) continue;
+        const cells = pathCells(from.x, from.y, nx, ny);
+        if (!pathIsFree(cells)) continue;
+        const fromIdx = cellIsland.get(from.x + ',' + from.y);
+        const to = addIsland(nx, ny);
+        commitBridge(fromIdx, to, cells);
+        stuck = 0;
+      }
+
+      if (islands.length < targetIslands * .8) continue;
+
+      // densifier : relier des paires d'îles déjà alignées et visibles
+      for (let a = 0; a < islands.length; a++) {
+        for (let b = a + 1; b < islands.length; b++) {
+          if (solBridges.has(pairKey(a, b))) continue;
+          if (Math.random() > .3) continue;
+          const A = islands[a], B = islands[b];
+          if (A.x !== B.x && A.y !== B.y) continue;
+          if (Math.abs(B.x - A.x) + Math.abs(B.y - A.y) < 2) continue;
+          const cells = pathCells(A.x, A.y, B.x, B.y);
+          if (!pathIsFree(cells)) continue;
+          commitBridge(a, b, cells);
+        }
+      }
+
+      // chiffres des îles = somme des ponts de la solution
+      const need = islands.map(() => 0);
+      for (const [k, v] of solBridges) {
+        const [a, b] = k.split('-').map(Number);
+        need[a] += v; need[b] += v;
+      }
+      if (need.some(v => v > 8)) continue;
+
+      return { islands, need, size };
+    }
+    // repli : grille minuscule triviale
+    return { islands: [{x:1,y:1},{x:4,y:1}], need: [1,1], size: 7 };
+  }
+
+  // ---------- État ----------
+  let islands, need, gridSize;
+  let bridges;          // Map pairKey -> count (0 exclu)
+  let candidates;       // paires alignées sans île entre elles : {a, b}
+  let history = [];
+  let finished = false;
+  let timerInt = null, seconds = 0;
+
+  const svg = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const timerEl = document.getElementById('timer');
+  const overlayEl = document.getElementById('overlay');
+  const NS = 'http://www.w3.org/2000/svg';
+
+  const fmt = s => String(s / 60 | 0).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  function startTimer() {
+    clearInterval(timerInt);
+    seconds = 0;
+    timerEl.textContent = '00:00';
+    timerInt = setInterval(() => { seconds++; timerEl.textContent = fmt(seconds); }, 1000);
+  }
+  function setStatus(msg, color) {
+    statusEl.textContent = msg;
+    statusEl.style.color = color || '';
+    if (msg) setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 3000);
+  }
+
+  // ---------- Géométrie ----------
+  const CELL = 60, PAD = 45;
+  const px = v => PAD + v * CELL;
+
+  function computeCandidates() {
+    candidates = [];
+    const cellIsland = new Map();
+    islands.forEach((p, i) => cellIsland.set(p.x + ',' + p.y, i));
+    for (let a = 0; a < islands.length; a++) {
+      for (let b = a + 1; b < islands.length; b++) {
+        const A = islands[a], B = islands[b];
+        if (A.x !== B.x && A.y !== B.y) continue;
+        const dx = Math.sign(B.x - A.x), dy = Math.sign(B.y - A.y);
+        const dist = Math.abs(B.x - A.x) + Math.abs(B.y - A.y);
+        let clear = true;
+        for (let i = 1; i < dist; i++)
+          if (cellIsland.has((A.x + dx * i) + ',' + (A.y + dy * i))) { clear = false; break; }
+        if (clear) candidates.push({ a, b });
+      }
+    }
+  }
+
+  function bridgeCrossesExisting(a, b) {
+    const A = islands[a], B = islands[b];
+    for (const [k, v] of bridges) {
+      if (!v) continue;
+      const [c, d] = k.split('-').map(Number);
+      if (c === a || c === b || d === a || d === b) continue;
+      const C = islands[c], D = islands[d];
+      const newH = A.y === B.y, oldH = C.y === D.y;
+      if (newH === oldH) continue;
+      if (newH) {
+        const bx = C.x;                       // pont vertical existant
+        if (Math.min(A.x,B.x) < bx && bx < Math.max(A.x,B.x) &&
+            Math.min(C.y,D.y) < A.y && A.y < Math.max(C.y,D.y)) return true;
+      } else {
+        const by = C.y;                       // pont horizontal existant
+        if (Math.min(A.y,B.y) < by && by < Math.max(A.y,B.y) &&
+            Math.min(C.x,D.x) < A.x && A.x < Math.max(C.x,D.x)) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------- Rendu ----------
+  let zoneEls = new Map(), islandGroups = [];
+
+  function render() {
+    const sizePx = PAD * 2 + (gridSize - 1) * CELL;
+    svg.setAttribute('viewBox', `0 0 ${sizePx} ${sizePx}`);
+    svg.innerHTML = '';
+    zoneEls = new Map();
+    islandGroups = [];
+
+    // ponts
+    for (const [k, v] of bridges) {
+      if (!v) continue;
+      const [a, b] = k.split('-').map(Number);
+      const A = islands[a], B = islands[b];
+      const horizontal = A.y === B.y;
+      const off = v === 2 ? 5 : 0;
+      for (let i = 0; i < v; i++) {
+        const d = v === 2 ? (i === 0 ? -off : off) : 0;
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', px(A.x) + (horizontal ? 0 : d));
+        line.setAttribute('y1', px(A.y) + (horizontal ? d : 0));
+        line.setAttribute('x2', px(B.x) + (horizontal ? 0 : d));
+        line.setAttribute('y2', px(B.y) + (horizontal ? d : 0));
+        line.setAttribute('class', 'bridge');
+        line.setAttribute('stroke-width', 3.5);
+        svg.appendChild(line);
+      }
+    }
+
+    // zones cliquables
+    for (const cand of candidates) {
+      const k = pairKey(cand.a, cand.b);
+      const A = islands[cand.a], B = islands[cand.b];
+      const zone = document.createElementNS(NS, 'line');
+      zone.setAttribute('x1', px(A.x)); zone.setAttribute('y1', px(A.y));
+      zone.setAttribute('x2', px(B.x)); zone.setAttribute('y2', px(B.y));
+      zone.setAttribute('class', 'zone');
+      zone.setAttribute('stroke-width', 26);
+      zone.addEventListener('click', () => cycleBridge(cand.a, cand.b));
+      svg.appendChild(zone);
+      zoneEls.set(k, zone);
+    }
+
+    // îles
+    islands.forEach((p, i) => {
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'island');
+      const disc = document.createElementNS(NS, 'circle');
+      disc.setAttribute('cx', px(p.x)); disc.setAttribute('cy', px(p.y));
+      disc.setAttribute('r', 19);
+      disc.setAttribute('class', 'island-disc');
+      const num = document.createElementNS(NS, 'text');
+      num.setAttribute('x', px(p.x)); num.setAttribute('y', px(p.y) + 1);
+      num.setAttribute('class', 'island-num');
+      num.setAttribute('font-size', 19);
+      num.textContent = need[i];
+      g.appendChild(disc); g.appendChild(num);
+      svg.appendChild(g);
+      islandGroups.push(g);
+    });
+
+    updateIslandStates();
+  }
+
+  function currentCount(i) {
+    let s = 0;
+    for (const [k, v] of bridges) {
+      const [a, b] = k.split('-').map(Number);
+      if (a === i || b === i) s += v;
+    }
+    return s;
+  }
+
+  function updateIslandStates() {
+    islands.forEach((_, i) => {
+      const c = currentCount(i);
+      islandGroups[i].classList.toggle('done', c === need[i]);
+      islandGroups[i].classList.toggle('over', c > need[i]);
+    });
+  }
+
+  // ---------- Jeu ----------
+  function cycleBridge(a, b) {
+    if (finished) return;
+    const k = pairKey(a, b);
+    const cur = bridges.get(k) || 0;
+    if (cur === 0 && bridgeCrossesExisting(a, b)) {
+      const z = zoneEls.get(k);
+      z.classList.remove('blocked-flash');
+      void z.getBBox();
+      z.classList.add('blocked-flash');
+      setStatus('Un pont croise le chemin', 'var(--seal)');
+      return;
+    }
+    history.push({ k, v: cur });
+    const next = (cur + 1) % 3;
+    if (next === 0) bridges.delete(k); else bridges.set(k, next);
+    render();
+    checkWin(false);
+  }
+
+  function connectedAll() {
+    if (!islands.length) return false;
+    const adj = islands.map(() => []);
+    for (const [k, v] of bridges) {
+      if (!v) continue;
+      const [a, b] = k.split('-').map(Number);
+      adj[a].push(b); adj[b].push(a);
+    }
+    const seen = new Set([0]);
+    const stack = [0];
+    while (stack.length) {
+      const n = stack.pop();
+      for (const m of adj[n]) if (!seen.has(m)) { seen.add(m); stack.push(m); }
+    }
+    return seen.size === islands.length;
+  }
+
+  function checkWin(verbose) {
+    const allExact = islands.every((_, i) => currentCount(i) === need[i]);
+    if (allExact && connectedAll()) {
+      finished = true;
+      clearInterval(timerInt);
+      document.getElementById('finalTime').textContent = 'Temps : ' + fmt(seconds);
+      overlayEl.classList.add('show');
+      return;
+    }
+    if (verbose) {
+      if (!allExact) {
+        const under = islands.filter((_, i) => currentCount(i) < need[i]).length;
+        const over = islands.filter((_, i) => currentCount(i) > need[i]).length;
+        if (over) setStatus(over + (over > 1 ? ' îles ont' : ' île a') + ' trop de ponts', 'var(--seal)');
+        else setStatus(under + (under > 1 ? ' îles attendent' : ' île attend') + ' encore des ponts');
+      } else {
+        setStatus('Tous les chiffres sont bons, mais le réseau est en plusieurs morceaux', 'var(--seal)');
+      }
+    }
+  }
+
+  function undo() {
+    if (finished) return;
+    const h = history.pop();
+    if (!h) { setStatus('Rien à annuler'); return; }
+    if (h.v === 0) bridges.delete(h.k); else bridges.set(h.k, h.v);
+    render();
+  }
+
+  function clearAll() {
+    if (finished) return;
+    if (!bridges.size) return;
+    history.push(...[...bridges].map(([k, v]) => ({ k, v })));
+    bridges.clear();
+    render();
+  }
+
+  function newGame() {
+    gridSize = +document.getElementById('size').value;
+    setStatus('Génération en cours…');
+    overlayEl.classList.remove('show');
+    setTimeout(() => {
+      const g = generate(gridSize);
+      islands = g.islands;
+      need = g.need;
+      gridSize = g.size;
+      bridges = new Map();
+      history = [];
+      finished = false;
+      computeCandidates();
+      render();
+      setStatus('');
+      startTimer();
+    }, 30);
+  }
+
+  document.getElementById('newGame').addEventListener('click', newGame);
+  document.getElementById('againBtn').addEventListener('click', newGame);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('clearBtn').addEventListener('click', clearAll);
+  document.getElementById('checkBtn').addEventListener('click', () => checkWin(true));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { undo(); e.preventDefault(); }
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
