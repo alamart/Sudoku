@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>賢 — Calcudoku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef1f3;
+    --paper-raised: #f7f9fa;
+    --ink: #1c2733;
+    --ink-soft: #4c5a68;
+    --ink-faint: #94a1ad;
+    --indigo: #2b4a6f;
+    --indigo-wash: #dde6ee;
+    --indigo-deep: #16324f;
+    --seal: #c73e2d;
+    --seal-soft: #f3ddd9;
+    --ok: #2e7d5b;
+    --line-thin: #c6cfd6;
+    --cell: 64px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(28,39,51,.045) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 12px 32px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+
+  .seal {
+    width: 46px; height: 46px;
+    border: 2px solid var(--seal);
+    border-radius: 7px;
+    color: var(--seal);
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(-2deg);
+    background: var(--seal-soft);
+  }
+
+  .title-block h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 26px; font-weight: 600;
+    letter-spacing: .5px;
+    color: var(--indigo-deep);
+  }
+  .title-block .sub {
+    font-size: 12px; color: var(--ink-soft);
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+
+  .topbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; flex-wrap: wrap; justify-content: center;
+  }
+
+  select, .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    border: 1.5px solid var(--indigo);
+    background: var(--paper-raised);
+    color: var(--indigo-deep);
+    border-radius: 6px;
+    padding: 7px 13px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  select:hover, .btn:hover { background: var(--indigo-wash); }
+  .btn-primary { background: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: var(--indigo-deep); }
+  select:focus-visible, .btn:focus-visible, .key:focus-visible, .tool:focus-visible {
+    outline: 2px solid var(--seal); outline-offset: 2px;
+  }
+
+  .timer {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; color: var(--ink-soft);
+    min-width: 62px; text-align: center;
+    padding: 7px 4px;
+    border-bottom: 1.5px dashed var(--line-thin);
+  }
+
+  /* ---------- Plateau ---------- */
+  .frame { position: relative; }
+
+  .board {
+    display: grid;
+    border: 3px solid var(--ink);
+    background: var(--paper-raised);
+    box-shadow: 4px 5px 0 rgba(22,50,79,.14);
+  }
+
+  .cellbox {
+    width: var(--cell); height: var(--cell);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    cursor: pointer;
+    font-family: 'Shippori Mincho', serif;
+    font-size: calc(var(--cell) * .46);
+    font-weight: 600;
+    color: var(--indigo);
+    border-right: 1px solid var(--line-thin);
+    border-bottom: 1px solid var(--line-thin);
+  }
+  /* les bords épais des cages sont posés en JS via ces classes */
+  .cellbox.cage-r { border-right: 2.5px solid var(--ink); }
+  .cellbox.cage-b { border-bottom: 2.5px solid var(--ink); }
+  .cellbox.lastc { border-right: none; }
+  .cellbox.lastr { border-bottom: none; }
+
+  .cage-label {
+    position: absolute;
+    top: 3px; left: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: calc(var(--cell) * .21);
+    font-weight: 500;
+    color: var(--ink-soft);
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .cellbox.peer { background: #e6ebef; }
+  .cellbox.same { background: var(--indigo-wash); }
+  .cellbox.selected {
+    background: var(--indigo-wash);
+    box-shadow: inset 0 0 0 2px var(--indigo);
+    z-index: 1;
+  }
+  .cellbox.error { color: var(--seal); }
+  .cellbox.error .cage-label { color: var(--seal); }
+
+  .notes {
+    position: absolute; inset: 2px;
+    padding-top: calc(var(--cell) * .24);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 1fr;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: calc(var(--cell) * .19);
+    font-weight: 500;
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+  .notes span { display: flex; align-items: center; justify-content: center; }
+
+  /* ---------- Clavier ---------- */
+  .pad {
+    margin-top: 16px;
+    display: flex; gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .key {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 20px; font-weight: 600;
+    color: var(--indigo-deep);
+    background: var(--paper-raised);
+    border: 1.5px solid var(--indigo);
+    border-radius: 6px;
+    width: 46px; padding: 10px 0;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .key:hover { background: var(--indigo-wash); }
+  .key:active { background: var(--indigo); color: #fff; }
+
+  .tools {
+    margin-top: 8px;
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  }
+  .tool {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ink-soft);
+    background: var(--paper-raised);
+    border: 1.5px solid var(--line-thin);
+    border-radius: 6px;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: border-color .12s, color .12s, background .12s;
+  }
+  .tool:hover { border-color: var(--indigo); color: var(--indigo-deep); }
+  .tool.active { border-color: var(--seal); color: var(--seal); background: var(--seal-soft); }
+
+  .status {
+    margin-top: 10px;
+    font-size: 13px; color: var(--ink-soft);
+    min-height: 20px; text-align: center;
+  }
+
+  .hint-bar { margin-top: 4px; font-size: 12px; color: var(--ink-faint); text-align: center; max-width: 460px; }
+
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(238,241,243,.92);
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; z-index: 5;
+  }
+  .overlay.show { display: flex; animation: fadein .4s ease; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .overlay .kanji {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 48px; font-weight: 700;
+    color: var(--seal); transform: rotate(-2deg);
+  }
+  .overlay .msg { font-family: 'Shippori Mincho', serif; font-size: 20px; color: var(--indigo-deep); }
+  .overlay .time { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal" aria-hidden="true">賢</div>
+  <div class="title-block">
+    <h1>Calcudoku</h1>
+    <div class="sub">Carré latin &amp; cages arithmétiques</div>
+  </div>
+</header>
+
+<div class="topbar">
+  <select id="size" aria-label="Taille">
+    <option value="4">4×4 · Facile</option>
+    <option value="5" selected>5×5 · Moyen</option>
+    <option value="6">6×6 · Difficile</option>
+    <option value="7">7×7 · Expert</option>
+  </select>
+  <button class="btn btn-primary" id="newGame">Nouvelle grille</button>
+  <div class="timer" id="timer">00:00</div>
+</div>
+
+<div class="frame">
+  <div class="board" id="board" role="grid" aria-label="Grille de calcudoku"></div>
+  <div class="overlay" id="overlay">
+    <div class="kanji">完成</div>
+    <div class="msg">Grille résolue !</div>
+    <div class="time" id="finalTime"></div>
+    <button class="btn btn-primary" id="againBtn">Rejouer</button>
+  </div>
+</div>
+
+<div class="pad" id="pad"></div>
+
+<div class="tools">
+  <button class="tool" id="notesBtn" aria-pressed="false">✎ Notes</button>
+  <button class="tool" id="eraseBtn">⌫ Effacer</button>
+  <button class="tool" id="undoBtn">↩ Annuler</button>
+  <button class="tool" id="checkBtn">◎ Vérifier</button>
+</div>
+<div class="hint-bar">
+  Chaque ligne et colonne contient chaque chiffre une fois · le coin d'une cage donne le résultat et l'opération · − et ÷ dans n'importe quel ordre
+</div>
+<div class="status" id="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const rnd = n => Math.random() * n | 0;
+  const shuffled = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = rnd(i + 1); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+  // ---------- Carré latin aléatoire ----------
+  function latinSquare(N) {
+    const g = Array.from({ length: N }, () => Array(N).fill(0));
+    (function fill(pos) {
+      if (pos === N * N) return true;
+      const r = pos / N | 0, c = pos % N;
+      for (const v of shuffled(Array.from({ length: N }, (_, i) => i + 1))) {
+        let ok = true;
+        for (let i = 0; i < N; i++)
+          if (g[r][i] === v || g[i][c] === v) { ok = false; break; }
+        if (ok) {
+          g[r][c] = v;
+          if (fill(pos + 1)) return true;
+          g[r][c] = 0;
+        }
+      }
+      return false;
+    })(0);
+    return g;
+  }
+
+  // ---------- Découpage en cages ----------
+  function makeCages(sol, N) {
+    const cageOf = Array.from({ length: N }, () => Array(N).fill(-1));
+    const cages = [];
+    const order = shuffled(Array.from({ length: N * N }, (_, i) => i));
+    for (const idx of order) {
+      const r = idx / N | 0, c = idx % N;
+      if (cageOf[r][c] !== -1) continue;
+      const id = cages.length;
+      const cells = [[r, c]];
+      cageOf[r][c] = id;
+      // taille visée : surtout 2 et 3, parfois 1 ou 4
+      const want = [2, 2, 3, 3, 3, 4, 1][rnd(7)];
+      while (cells.length < want) {
+        const grown = shuffled(cells);
+        let added = false;
+        for (const [gr, gc] of grown) {
+          for (const [dr, dc] of shuffled([[1,0],[-1,0],[0,1],[0,-1]])) {
+            const nr = gr + dr, nc = gc + dc;
+            if (nr < 0 || nc < 0 || nr >= N || nc >= N || cageOf[nr][nc] !== -1) continue;
+            cageOf[nr][nc] = id;
+            cells.push([nr, nc]);
+            added = true;
+            break;
+          }
+          if (added) break;
+        }
+        if (!added) break;
+      }
+      cages.push({ cells });
+    }
+
+    // opérations et cibles à partir de la solution
+    for (const cage of cages) {
+      const vals = cage.cells.map(([r, c]) => sol[r][c]);
+      if (vals.length === 1) {
+        cage.op = '='; cage.target = vals[0];
+      } else if (vals.length === 2) {
+        const [a, b] = vals, hi = Math.max(a, b), lo = Math.min(a, b);
+        const opts = ['+', '×', '−'];
+        if (hi % lo === 0) opts.push('÷', '÷');   // favoriser ÷ quand possible
+        cage.op = opts[rnd(opts.length)];
+        cage.target = cage.op === '+' ? a + b
+          : cage.op === '×' ? a * b
+          : cage.op === '−' ? hi - lo
+          : hi / lo;
+      } else {
+        cage.op = Math.random() < .5 ? '+' : '×';
+        cage.target = cage.op === '+'
+          ? vals.reduce((s, v) => s + v, 0)
+          : vals.reduce((p, v) => p * v, 1);
+      }
+    }
+    return { cages, cageOf };
+  }
+
+  // ---------- Solveur avec comptage (unicité) ----------
+  function countSolutions(N, cages, cageOf, limit = 2) {
+    const grid = Array.from({ length: N }, () => Array(N).fill(0));
+    const rowUsed = Array.from({ length: N }, () => new Set());
+    const colUsed = Array.from({ length: N }, () => new Set());
+    const cageState = cages.map(() => ({ n: 0, sum: 0, prod: 1, vals: [] }));
+    let count = 0;
+
+    const cageOk = (id, v, final) => {
+      const cage = cages[id], st = cageState[id];
+      switch (cage.op) {
+        case '=': return v === cage.target;
+        case '+': {
+          const s = st.sum + v;
+          return final ? s === cage.target : s < cage.target;
+        }
+        case '×': {
+          const p = st.prod * v;
+          if (p > cage.target || cage.target % p !== 0) return false;
+          return final ? p === cage.target : true;
+        }
+        case '−': {
+          if (!final) return true;
+          const [a] = st.vals;
+          return Math.abs(a - v) === cage.target;
+        }
+        case '÷': {
+          if (!final) return true;
+          const [a] = st.vals;
+          return Math.max(a, v) / Math.min(a, v) === cage.target;
+        }
+      }
+    };
+
+    (function solve(pos) {
+      if (count >= limit) return;
+      if (pos === N * N) { count++; return; }
+      const r = pos / N | 0, c = pos % N;
+      const id = cageOf[r][c];
+      const st = cageState[id];
+      const final = st.n === cages[id].cells.length - 1;
+      for (let v = 1; v <= N; v++) {
+        if (rowUsed[r].has(v) || colUsed[c].has(v)) continue;
+        if (!cageOk(id, v, final)) continue;
+        rowUsed[r].add(v); colUsed[c].add(v);
+        st.n++; st.sum += v; st.prod *= v; st.vals.push(v);
+        solve(pos + 1);
+        st.vals.pop(); st.prod /= v; st.sum -= v; st.n--;
+        rowUsed[r].delete(v); colUsed[c].delete(v);
+        if (count >= limit) return;
+      }
+    })(0);
+    return count;
+  }
+
+  function generate(N) {
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const sol = latinSquare(N);
+      const { cages, cageOf } = makeCages(sol, N);
+      if (countSolutions(N, cages, cageOf) === 1)
+        return { sol, cages, cageOf };
+    }
+    return null; // extrêmement improbable après 80 essais
+  }
+
+  // ---------- État ----------
+  let N, sol, cages, cageOf, grid, notes;
+  let selected = null, notesMode = false;
+  let history = [], finished = false;
+  let timerInt = null, seconds = 0;
+
+  const boardEl = document.getElementById('board');
+  const padEl = document.getElementById('pad');
+  const statusEl = document.getElementById('status');
+  const timerEl = document.getElementById('timer');
+  const overlayEl = document.getElementById('overlay');
+  const notesBtn = document.getElementById('notesBtn');
+
+  const fmt = s => String(s / 60 | 0).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  function startTimer() {
+    clearInterval(timerInt);
+    seconds = 0;
+    timerEl.textContent = '00:00';
+    timerInt = setInterval(() => { seconds++; timerEl.textContent = fmt(seconds); }, 1000);
+  }
+  function setStatus(msg, color) {
+    statusEl.textContent = msg;
+    statusEl.style.color = color || '';
+    if (msg) setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 3000);
+  }
+
+  // ---------- Construction ----------
+  let cellEls = [];
+  function build() {
+    const cs = Math.max(44, Math.min(72, Math.floor(Math.min(window.innerWidth - 30, 520) / N)));
+    document.documentElement.style.setProperty('--cell', cs + 'px');
+    boardEl.style.gridTemplateColumns = `repeat(${N}, var(--cell))`;
+    boardEl.innerHTML = '';
+    cellEls = [];
+
+    // cellule porteuse du libellé : première de la cage en ordre de lecture
+    const labelCell = cages.map(cage =>
+      [...cage.cells].sort((a, b) => a[0] - b[0] || a[1] - b[1])[0]);
+
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const el = document.createElement('div');
+      el.className = 'cellbox';
+      const id = cageOf[r][c];
+      if (c === N - 1) el.classList.add('lastc');
+      else if (cageOf[r][c + 1] !== id) el.classList.add('cage-r');
+      if (r === N - 1) el.classList.add('lastr');
+      else if (cageOf[r + 1][c] !== id) el.classList.add('cage-b');
+      const lc = labelCell[id];
+      if (lc[0] === r && lc[1] === c) {
+        const lab = document.createElement('div');
+        lab.className = 'cage-label';
+        lab.textContent = cages[id].target + (cages[id].op === '=' ? '' : cages[id].op);
+        el.appendChild(lab);
+      }
+      el.addEventListener('click', () => { selected = { r, c }; render(); });
+      boardEl.appendChild(el);
+      cellEls.push(el);
+    }
+
+    padEl.innerHTML = '';
+    for (let v = 1; v <= N; v++) {
+      const k = document.createElement('button');
+      k.className = 'key';
+      k.textContent = v;
+      k.addEventListener('click', () => inputValue(v));
+      padEl.appendChild(k);
+    }
+  }
+
+  // ---------- Rendu ----------
+  function render() {
+    const selVal = selected ? grid[selected.r][selected.c] : 0;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const el = cellEls[r * N + c];
+      const v = grid[r][c];
+      el.classList.remove('selected', 'peer', 'same', 'error');
+      if (selected) {
+        if (selected.r === r && selected.c === c) el.classList.add('selected');
+        else if (selected.r === r || selected.c === c) el.classList.add('peer');
+        if (selVal && v === selVal && !(selected.r === r && selected.c === c)) el.classList.add('same');
+      }
+      // conserver le libellé de cage, remplacer le reste
+      [...el.childNodes].forEach(n => { if (!n.classList || !n.classList.contains('cage-label')) n.remove(); });
+      if (v !== 0) {
+        el.appendChild(document.createTextNode(v));
+        if (violates(r, c, v)) el.classList.add('error');
+      } else if (notes[r][c].size) {
+        const n = document.createElement('div');
+        n.className = 'notes';
+        for (let d = 1; d <= N; d++) {
+          const s = document.createElement('span');
+          s.textContent = notes[r][c].has(d) ? d : '';
+          n.appendChild(s);
+        }
+        el.appendChild(n);
+      }
+    }
+  }
+
+  // une valeur viole-t-elle une règle visible ? (doublon ou cage complète fausse)
+  function violates(r, c, v) {
+    for (let i = 0; i < N; i++) {
+      if (i !== c && grid[r][i] === v) return true;
+      if (i !== r && grid[i][c] === v) return true;
+    }
+    const cage = cages[cageOf[r][c]];
+    const vals = cage.cells.map(([cr, cc]) => grid[cr][cc]);
+    if (vals.some(x => x === 0)) return false;   // cage incomplète : pas de verdict
+    switch (cage.op) {
+      case '=': return vals[0] !== cage.target;
+      case '+': return vals.reduce((s, x) => s + x, 0) !== cage.target;
+      case '×': return vals.reduce((p, x) => p * x, 1) !== cage.target;
+      case '−': return Math.abs(vals[0] - vals[1]) !== cage.target;
+      case '÷': return Math.max(...vals) / Math.min(...vals) !== cage.target;
+    }
+  }
+
+  // ---------- Saisie ----------
+  function pushHistory(r, c) {
+    history.push({ r, c, v: grid[r][c], n: new Set(notes[r][c]) });
+    if (history.length > 500) history.shift();
+  }
+
+  function inputValue(v) {
+    if (!selected || finished || v > N) return;
+    const { r, c } = selected;
+    pushHistory(r, c);
+    if (notesMode) {
+      if (grid[r][c] !== 0) grid[r][c] = 0;
+      notes[r][c].has(v) ? notes[r][c].delete(v) : notes[r][c].add(v);
+    } else {
+      grid[r][c] = grid[r][c] === v ? 0 : v;
+      if (grid[r][c]) notes[r][c].clear();
+    }
+    render();
+    checkWin();
+  }
+
+  function erase() {
+    if (!selected || finished) return;
+    const { r, c } = selected;
+    pushHistory(r, c);
+    grid[r][c] = 0;
+    notes[r][c].clear();
+    render();
+  }
+
+  function undo() {
+    if (finished) return;
+    const h = history.pop();
+    if (!h) { setStatus('Rien à annuler'); return; }
+    grid[h.r][h.c] = h.v;
+    notes[h.r][h.c] = h.n;
+    selected = { r: h.r, c: h.c };
+    render();
+  }
+
+  function check() {
+    if (finished) return;
+    let wrong = 0, empty = 0;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (grid[r][c] === 0) empty++;
+      else if (grid[r][c] !== sol[r][c]) wrong++;
+    }
+    if (wrong) setStatus(wrong + (wrong > 1 ? ' cases sont fausses' : ' case est fausse'), 'var(--seal)');
+    else if (empty) setStatus('Aucune erreur pour l\u2019instant \u2014 ' + empty + ' cases restantes', 'var(--ok)');
+  }
+
+  function checkWin() {
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
+      if (grid[r][c] !== sol[r][c]) return;
+    finished = true;
+    clearInterval(timerInt);
+    document.getElementById('finalTime').textContent = 'Temps : ' + fmt(seconds);
+    overlayEl.classList.add('show');
+  }
+
+  // ---------- Nouvelle partie ----------
+  function newGame() {
+    N = +document.getElementById('size').value;
+    setStatus('Génération en cours…');
+    overlayEl.classList.remove('show');
+    setTimeout(() => {
+      const g = generate(N);
+      if (!g) { setStatus('Échec de génération, réessayez', 'var(--seal)'); return; }
+      sol = g.sol; cages = g.cages; cageOf = g.cageOf;
+      grid = Array.from({ length: N }, () => Array(N).fill(0));
+      notes = Array.from({ length: N }, () => Array.from({ length: N }, () => new Set()));
+      history = [];
+      selected = null;
+      finished = false;
+      build();
+      render();
+      setStatus('');
+      startTimer();
+    }, 30);
+  }
+
+  document.getElementById('newGame').addEventListener('click', newGame);
+  document.getElementById('againBtn').addEventListener('click', newGame);
+  document.getElementById('eraseBtn').addEventListener('click', erase);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('checkBtn').addEventListener('click', check);
+  notesBtn.addEventListener('click', () => {
+    notesMode = !notesMode;
+    notesBtn.classList.toggle('active', notesMode);
+    notesBtn.setAttribute('aria-pressed', notesMode);
+  });
+
+  document.addEventListener('keydown', e => {
+    const d = +e.key;
+    if (d >= 1 && d <= 9) { inputValue(d); e.preventDefault(); }
+    else if (e.key === 'Backspace' || e.key === 'Delete') { erase(); e.preventDefault(); }
+    else if (e.key === 'n' || e.key === 'N') notesBtn.click();
+    else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { undo(); e.preventDefault(); }
+    else if (e.key.startsWith('Arrow')) {
+      if (!selected) { selected = { r: 0, c: 0 }; render(); return; }
+      let { r, c } = selected;
+      if (e.key === 'ArrowUp') r = (r + N - 1) % N;
+      if (e.key === 'ArrowDown') r = (r + 1) % N;
+      if (e.key === 'ArrowLeft') c = (c + N - 1) % N;
+      if (e.key === 'ArrowRight') c = (c + 1) % N;
+      selected = { r, c };
+      render();
+      e.preventDefault();
+    }
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
