@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>推 — Mastermind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef1f3;
+    --paper-raised: #f7f9fa;
+    --ink: #1c2733;
+    --ink-soft: #4c5a68;
+    --ink-faint: #94a1ad;
+    --indigo: #2b4a6f;
+    --indigo-wash: #dde6ee;
+    --indigo-deep: #16324f;
+    --seal: #c73e2d;
+    --seal-soft: #f3ddd9;
+    --ok: #2e7d5b;
+    --line-thin: #c6cfd6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(28,39,51,.045) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 18px 12px 32px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .seal {
+    width: 46px; height: 46px;
+    border: 2px solid var(--seal); border-radius: 7px;
+    color: var(--seal);
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(-2deg);
+    background: var(--seal-soft);
+  }
+  .title-block h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 26px; font-weight: 600; letter-spacing: .5px;
+    color: var(--indigo-deep);
+  }
+  .title-block .sub {
+    font-size: 12px; color: var(--ink-soft);
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; justify-content: center; }
+  select, .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    border: 1.5px solid var(--indigo);
+    background: var(--paper-raised);
+    color: var(--indigo-deep);
+    border-radius: 6px; padding: 7px 13px;
+    cursor: pointer; transition: background .15s;
+  }
+  select:hover, .btn:hover { background: var(--indigo-wash); }
+  .btn-primary { background: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: var(--indigo-deep); }
+  select:focus-visible, .btn:focus-visible, .stone:focus-visible {
+    outline: 2px solid var(--seal); outline-offset: 2px;
+  }
+
+  /* ---------- Plateau ---------- */
+  .frame {
+    position: relative;
+    background: var(--paper-raised);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 5px 0 rgba(22,50,79,.14);
+    padding: 14px;
+    width: min(92vw, 420px);
+  }
+
+  .rows { display: flex; flex-direction: column-reverse; gap: 7px; }
+
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 5px 8px;
+    border-radius: 6px;
+  }
+  .row.current { background: var(--indigo-wash); }
+
+  .row .idx {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--ink-faint);
+    width: 16px; text-align: right;
+  }
+
+  .pegs { display: flex; gap: 8px; flex: 1; }
+
+  .peg {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 2px dashed var(--line-thin);
+    background: transparent;
+    transition: transform .12s;
+  }
+  .peg.filled { border-style: solid; border-color: rgba(28,39,51,.35); box-shadow: inset -3px -4px 6px rgba(0,0,0,.18), inset 3px 4px 6px rgba(255,255,255,.35); }
+  .row.current .peg { cursor: pointer; }
+  .row.current .peg:hover { transform: scale(1.1); }
+
+  .feedback {
+    display: grid;
+    grid-template-columns: repeat(2, 12px);
+    gap: 3px;
+  }
+  .fb {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1.5px solid var(--line-thin);
+  }
+  .fb.black { background: var(--ink); border-color: var(--ink); }
+  .fb.white { background: #fff; border-color: var(--ink-soft); }
+
+  /* ---------- Palette ---------- */
+  .palette {
+    margin-top: 14px;
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  }
+  .stone {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 2px solid rgba(28,39,51,.35);
+    cursor: pointer;
+    box-shadow: inset -3px -4px 7px rgba(0,0,0,.2), inset 3px 4px 7px rgba(255,255,255,.4), 0 2px 3px rgba(22,50,79,.2);
+    transition: transform .12s;
+  }
+  .stone:hover { transform: scale(1.12); }
+  .stone.selected { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  .actions { margin-top: 12px; display: flex; gap: 8px; justify-content: center; }
+
+  .status { margin-top: 10px; font-size: 13px; color: var(--ink-soft); min-height: 20px; text-align: center; }
+
+  .hint-bar { margin-top: 4px; font-size: 12px; color: var(--ink-faint); text-align: center; max-width: 420px; }
+
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(238,241,243,.94);
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; z-index: 5; text-align: center;
+  }
+  .overlay.show { display: flex; animation: fadein .4s ease; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .overlay .kanji {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 48px; font-weight: 700;
+    color: var(--seal); transform: rotate(-2deg);
+  }
+  .overlay .msg { font-family: 'Shippori Mincho', serif; font-size: 20px; color: var(--indigo-deep); }
+  .overlay .reveal { display: flex; gap: 8px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal" aria-hidden="true">推</div>
+  <div class="title-block">
+    <h1>Mastermind</h1>
+    <div class="sub">Déduisez le code secret</div>
+  </div>
+</header>
+
+<div class="topbar">
+  <select id="difficulty" aria-label="Difficulté">
+    <option value="easy">6 couleurs · sans doublon</option>
+    <option value="classic" selected>6 couleurs · doublons</option>
+    <option value="hard">8 couleurs · doublons</option>
+  </select>
+  <button class="btn btn-primary" id="newGame">Nouveau code</button>
+</div>
+
+<div class="frame">
+  <div class="rows" id="rows"></div>
+  <div class="palette" id="palette"></div>
+  <div class="actions">
+    <button class="btn" id="clearBtn">Vider la ligne</button>
+    <button class="btn btn-primary" id="submitBtn" disabled>Valider</button>
+  </div>
+  <div class="overlay" id="overlay">
+    <div class="kanji" id="ovKanji">完成</div>
+    <div class="msg" id="ovMsg"></div>
+    <div class="reveal" id="ovReveal"></div>
+    <button class="btn btn-primary" id="againBtn">Rejouer</button>
+  </div>
+</div>
+
+<div class="hint-bar">
+  ● noir : bonne couleur, bonne position · ○ blanc : bonne couleur, mauvaise position · touchez une couleur puis une case, ou les cases dans l'ordre
+</div>
+<div class="status" id="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const COLORS = ['#c73e2d', '#2b6fb0', '#d9a531', '#2e7d5b', '#7a4a9e', '#e07b39', '#4bb8c4', '#8a5a3b'];
+  const CODE_LEN = 4, MAX_TRIES = 10;
+  const rnd = n => Math.random() * n | 0;
+
+  let secret, tries, current, selectedColor, finished, allowDup, numColors;
+
+  const rowsEl = document.getElementById('rows');
+  const paletteEl = document.getElementById('palette');
+  const statusEl = document.getElementById('status');
+  const overlayEl = document.getElementById('overlay');
+  const submitBtn = document.getElementById('submitBtn');
+
+  function setStatus(msg, color) {
+    statusEl.textContent = msg;
+    statusEl.style.color = color || '';
+    if (msg) setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 3000);
+  }
+
+  // ---------- Logique ----------
+  function makeSecret() {
+    if (allowDup) return Array.from({ length: CODE_LEN }, () => rnd(numColors));
+    const pool = Array.from({ length: numColors }, (_, i) => i);
+    for (let i = pool.length - 1; i > 0; i--) { const j = rnd(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    return pool.slice(0, CODE_LEN);
+  }
+
+  function feedback(guess) {
+    let black = 0, white = 0;
+    const sCount = Array(numColors).fill(0), gCount = Array(numColors).fill(0);
+    for (let i = 0; i < CODE_LEN; i++) {
+      if (guess[i] === secret[i]) black++;
+      else { sCount[secret[i]]++; gCount[guess[i]]++; }
+    }
+    for (let c = 0; c < numColors; c++) white += Math.min(sCount[c], gCount[c]);
+    return { black, white };
+  }
+
+  // ---------- Rendu ----------
+  function buildRows() {
+    rowsEl.innerHTML = '';
+    for (let t = 0; t < MAX_TRIES; t++) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.t = t;
+      const idx = document.createElement('div');
+      idx.className = 'idx';
+      idx.textContent = t + 1;
+      const pegs = document.createElement('div');
+      pegs.className = 'pegs';
+      for (let i = 0; i < CODE_LEN; i++) {
+        const p = document.createElement('div');
+        p.className = 'peg';
+        p.dataset.i = i;
+        p.addEventListener('click', () => onPegClick(t, i));
+        pegs.appendChild(p);
+      }
+      const fb = document.createElement('div');
+      fb.className = 'feedback';
+      for (let i = 0; i < CODE_LEN; i++) fb.appendChild(Object.assign(document.createElement('div'), { className: 'fb' }));
+      row.appendChild(idx); row.appendChild(pegs); row.appendChild(fb);
+      rowsEl.appendChild(row);
+    }
+  }
+
+  function buildPalette() {
+    paletteEl.innerHTML = '';
+    for (let c = 0; c < numColors; c++) {
+      const s = document.createElement('button');
+      s.className = 'stone';
+      s.style.background = COLORS[c];
+      s.setAttribute('aria-label', 'Couleur ' + (c + 1));
+      s.addEventListener('click', () => {
+        selectedColor = c;
+        [...paletteEl.children].forEach((el, i) => el.classList.toggle('selected', i === c));
+        // remplir la première case vide directement
+        const empty = current.indexOf(-1);
+        if (empty !== -1) placeColor(empty, c);
+      });
+      paletteEl.appendChild(s);
+    }
+  }
+
+  function refreshCurrentRow() {
+    const row = rowsEl.children[tries];
+    if (!row) return;
+    [...rowsEl.children].forEach((r, i) => r.classList.toggle('current', i === tries && !finished));
+    const pegs = row.querySelectorAll('.peg');
+    current.forEach((c, i) => {
+      pegs[i].classList.toggle('filled', c !== -1);
+      pegs[i].style.background = c === -1 ? 'transparent' : COLORS[c];
+    });
+    submitBtn.disabled = current.includes(-1) || finished;
+  }
+
+  function onPegClick(t, i) {
+    if (finished || t !== tries) return;
+    if (current[i] !== -1) {           // retirer
+      current[i] = -1;
+      refreshCurrentRow();
+    } else if (selectedColor !== null) {
+      placeColor(i, selectedColor);
+    }
+  }
+
+  function placeColor(i, c) {
+    current[i] = c;
+    refreshCurrentRow();
+  }
+
+  function submit() {
+    if (finished || current.includes(-1)) return;
+    const { black, white } = feedback(current);
+    const row = rowsEl.children[tries];
+    const fbs = row.querySelectorAll('.fb');
+    for (let i = 0; i < black; i++) fbs[i].classList.add('black');
+    for (let i = black; i < black + white; i++) fbs[i].classList.add('white');
+    tries++;
+    if (black === CODE_LEN) return end(true);
+    if (tries >= MAX_TRIES) return end(false);
+    current = Array(CODE_LEN).fill(-1);
+    refreshCurrentRow();
+    setStatus((MAX_TRIES - tries) + ' essai' + (MAX_TRIES - tries > 1 ? 's' : '') + ' restant' + (MAX_TRIES - tries > 1 ? 's' : ''));
+  }
+
+  function end(won) {
+    finished = true;
+    refreshCurrentRow();
+    document.getElementById('ovKanji').textContent = won ? '完成' : '残念';
+    document.getElementById('ovMsg').textContent = won
+      ? 'Code percé en ' + tries + ' essai' + (tries > 1 ? 's' : '') + ' !'
+      : 'Le code vous a échappé…';
+    const rev = document.getElementById('ovReveal');
+    rev.innerHTML = '';
+    secret.forEach(c => {
+      const s = document.createElement('div');
+      s.className = 'stone';
+      s.style.cursor = 'default';
+      s.style.background = COLORS[c];
+      rev.appendChild(s);
+    });
+    overlayEl.classList.add('show');
+  }
+
+  function newGame() {
+    const d = document.getElementById('difficulty').value;
+    allowDup = d !== 'easy';
+    numColors = d === 'hard' ? 8 : 6;
+    secret = makeSecret();
+    tries = 0;
+    current = Array(CODE_LEN).fill(-1);
+    selectedColor = null;
+    finished = false;
+    overlayEl.classList.remove('show');
+    buildRows();
+    buildPalette();
+    refreshCurrentRow();
+    setStatus('');
+  }
+
+  document.getElementById('newGame').addEventListener('click', newGame);
+  document.getElementById('againBtn').addEventListener('click', newGame);
+  document.getElementById('submitBtn').addEventListener('click', submit);
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (finished) return;
+    current = Array(CODE_LEN).fill(-1);
+    refreshCurrentRow();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') submit();
+    const d = +e.key;
+    if (d >= 1 && d <= numColors) paletteEl.children[d - 1].click();
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
