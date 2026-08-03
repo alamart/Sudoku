@@ -470,20 +470,24 @@
 
   // ---------- Glisser-déposer ----------
   let drag = null;   // {src, cards, els, ox, oy}
-  let lastTap = { time: 0, el: null };
+  let lastTap = { time: 0, key: null };
 
   function attachCardHandlers(el, src) {
     el.addEventListener('pointerdown', e => {
       if (finished) return;
       e.preventDefault();
       // double-touche = auto fondation
+      // identifiée par la carte elle-même : render() recrée les éléments
+      // DOM à chaque relâchement, une référence d'élément ne survit pas
+      const topCard = grabStack(src).slice(-1)[0];
+      const key = topCard ? src.zone + ':' + topCard.s + '-' + topCard.r : null;
       const now = Date.now();
-      if (lastTap.el === el && now - lastTap.time < 350) {
-        lastTap = { time: 0, el: null };
+      if (key && lastTap.key === key && now - lastTap.time < 350) {
+        lastTap = { time: 0, key: null };
         autoToFoundation(src);
         return;
       }
-      lastTap = { time: now, el };
+      lastTap = { time: now, key };
 
       const cards = grabStack(src);
       if (!cards.length) return;
