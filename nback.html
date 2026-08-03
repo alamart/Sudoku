@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>脳 — N-back</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef1f3;
+    --paper-raised: #f7f9fa;
+    --ink: #1c2733;
+    --ink-soft: #4c5a68;
+    --ink-faint: #94a1ad;
+    --indigo: #2b4a6f;
+    --indigo-wash: #dde6ee;
+    --indigo-deep: #16324f;
+    --seal: #c73e2d;
+    --seal-soft: #f3ddd9;
+    --ok: #2e7d5b;
+    --ok-soft: #dcece4;
+    --line-thin: #c6cfd6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(28,39,51,.045) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 18px 12px 32px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .seal {
+    width: 46px; height: 46px;
+    border: 2px solid var(--seal); border-radius: 7px;
+    color: var(--seal);
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 700; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(-2deg);
+    background: var(--seal-soft);
+  }
+  .title-block h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 26px; font-weight: 600; letter-spacing: .5px;
+    color: var(--indigo-deep);
+  }
+  .title-block .sub {
+    font-size: 12px; color: var(--ink-soft);
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; justify-content: center; }
+  select, .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    border: 1.5px solid var(--indigo);
+    background: var(--paper-raised);
+    color: var(--indigo-deep);
+    border-radius: 6px; padding: 7px 13px;
+    cursor: pointer; transition: background .15s;
+  }
+  select:hover, .btn:hover { background: var(--indigo-wash); }
+  .btn-primary { background: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: var(--indigo-deep); }
+  select:focus-visible, .btn:focus-visible, .answer:focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+
+  /* ---------- Zone d'exercice ---------- */
+  .frame {
+    position: relative;
+    background: var(--paper-raised);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 5px 0 rgba(22,50,79,.14);
+    padding: 20px;
+    width: min(92vw, 380px);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+
+  .progress {
+    width: 100%;
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--ink-soft);
+  }
+  .bar {
+    flex: 1; height: 5px;
+    background: var(--indigo-wash);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; width: 0%; background: var(--indigo); transition: width .3s; }
+
+  .stage {
+    display: grid;
+    grid-template-columns: repeat(3, 84px);
+    grid-template-rows: repeat(3, 84px);
+    gap: 6px;
+  }
+  .cell {
+    background: var(--paper);
+    border: 1.5px solid var(--line-thin);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 40px; font-weight: 700;
+    color: var(--indigo-deep);
+    transition: background .12s, border-color .12s;
+  }
+  .cell.lit { background: var(--indigo); border-color: var(--indigo-deep); color: #fff; }
+
+  .letter-stage {
+    width: 100%; height: 180px;
+    display: none;
+    align-items: center; justify-content: center;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 96px; font-weight: 700;
+    color: var(--indigo-deep);
+  }
+
+  .answers { display: flex; gap: 10px; width: 100%; }
+  .answer {
+    flex: 1;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px; font-weight: 600;
+    color: var(--indigo-deep);
+    background: var(--paper);
+    border: 2px solid var(--indigo);
+    border-radius: 8px;
+    padding: 16px 8px;
+    cursor: pointer;
+    transition: background .1s, border-color .1s;
+  }
+  .answer:disabled { opacity: .35; cursor: default; }
+  .answer.pressed { background: var(--indigo-wash); }
+  .answer.hit { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+  .answer.fa { background: var(--seal-soft); border-color: var(--seal); color: var(--seal); }
+  .answer kbd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--ink-faint);
+    display: block; margin-top: 3px; font-weight: 400;
+  }
+
+  .idle-msg {
+    text-align: center;
+    font-size: 14px; color: var(--ink-soft);
+    line-height: 1.6;
+    max-width: 300px;
+  }
+  .idle-msg strong { color: var(--indigo-deep); }
+
+  /* ---------- Résultats ---------- */
+  .results { width: 100%; display: none; flex-direction: column; gap: 12px; }
+  .results h2 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 20px; color: var(--indigo-deep);
+    text-align: center;
+  }
+  .score-big {
+    text-align: center;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 52px; font-weight: 700;
+    color: var(--seal);
+  }
+  .score-big small { font-size: 20px; color: var(--ink-soft); font-family: 'IBM Plex Sans', sans-serif; font-weight: 400; }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    font-size: 13.5px;
+    padding: 7px 4px;
+    border-bottom: 1px dashed var(--line-thin);
+    color: var(--ink-soft);
+  }
+  .stat-row b { color: var(--ink); font-weight: 600; }
+
+  .status { margin-top: 10px; font-size: 13px; color: var(--ink-soft); min-height: 20px; text-align: center; }
+  .hint-bar { margin-top: 4px; font-size: 12px; color: var(--ink-faint); text-align: center; max-width: 420px; }
+
+  @media (max-width: 400px) {
+    .stage { grid-template-columns: repeat(3, 72px); grid-template-rows: repeat(3, 72px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal" aria-hidden="true">脳</div>
+  <div class="title-block">
+    <h1>N-back</h1>
+    <div class="sub">Entraînement de la mémoire de travail</div>
+  </div>
+</header>
+
+<div class="topbar">
+  <select id="mode" aria-label="Mode">
+    <option value="pos" selected>Positions</option>
+    <option value="letter">Lettres</option>
+    <option value="dual">Double (les deux)</option>
+  </select>
+  <select id="nval" aria-label="Niveau N">
+    <option value="1">N = 1</option>
+    <option value="2" selected>N = 2</option>
+    <option value="3">N = 3</option>
+  </select>
+  <button class="btn btn-primary" id="startBtn">Démarrer</button>
+</div>
+
+<div class="frame">
+  <div class="progress">
+    <span id="trialLabel">—</span>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+  <div class="letter-stage" id="letterStage"></div>
+
+  <div class="idle-msg" id="idleMsg">
+    Un stimulus apparaît toutes les 2,5 secondes.<br>
+    Appuyez quand il est <strong>identique à celui d'il y a N tours</strong>.<br>
+    Ni trop tôt, ni sur les autres !
+  </div>
+
+  <div class="results" id="results">
+    <h2>Session terminée</h2>
+    <div class="score-big" id="scoreBig"></div>
+    <div id="statRows"></div>
+  </div>
+
+  <div class="answers">
+    <button class="answer" id="posBtn" disabled>◼ Position<kbd>touche A</kbd></button>
+    <button class="answer" id="letterBtn" disabled>あ Lettre<kbd>touche L</kbd></button>
+  </div>
+</div>
+
+<div class="hint-bar">
+  Commencez en N = 2 positions · le double N-back est l'exercice étudié en psychologie cognitive pour la mémoire de travail
+</div>
+<div class="status" id="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const LETTERS = ['A','E','K','M','R','S','T','U'];
+  const TRIALS = 20;
+  const TRIAL_MS = 2500, STIM_MS = 900;
+  const rnd = n => Math.random() * n | 0;
+
+  let mode, N, seqPos, seqLet, trial, running;
+  let pressed;                 // {pos, let} pour l'essai courant
+  let stats;                   // par flux : {hits, misses, fa, matches}
+  let timeouts = [];
+
+  const stage = document.getElementById('stage');
+  const letterStage = document.getElementById('letterStage');
+  const posBtn = document.getElementById('posBtn');
+  const letterBtn = document.getElementById('letterBtn');
+  const idleMsg = document.getElementById('idleMsg');
+  const resultsEl = document.getElementById('results');
+  const statusEl = document.getElementById('status');
+
+  const cells = [];
+  for (let i = 0; i < 9; i++) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    stage.appendChild(c);
+    cells.push(c);
+  }
+
+  // ---------- Génération de séquence avec ~30% de correspondances ----------
+  function makeSequence(alphabet) {
+    const seq = [];
+    for (let i = 0; i < TRIALS; i++) {
+      if (i >= N && Math.random() < .3) {
+        seq.push(seq[i - N]);                       // correspondance forcée
+      } else {
+        let v = alphabet[rnd(alphabet.length)];
+        // éviter les correspondances accidentelles pour garder ~30%
+        if (i >= N && v === seq[i - N]) v = alphabet[(alphabet.indexOf(v) + 1) % alphabet.length];
+        seq.push(v);
+      }
+    }
+    return seq;
+  }
+
+  // ---------- Session ----------
+  function start() {
+    stop();
+    mode = document.getElementById('mode').value;
+    N = +document.getElementById('nval').value;
+    seqPos = makeSequence([0,1,2,3,4,5,6,7,8]);
+    seqLet = makeSequence(LETTERS);
+    trial = -1;
+    running = true;
+    stats = {
+      pos: { hits: 0, misses: 0, fa: 0, matches: 0 },
+      let: { hits: 0, misses: 0, fa: 0, matches: 0 }
+    };
+    idleMsg.style.display = 'none';
+    resultsEl.style.display = 'none';
+    stage.style.display = mode === 'letter' ? 'none' : 'grid';
+    letterStage.style.display = mode === 'letter' ? 'flex' : 'none';
+    posBtn.style.display = mode === 'letter' ? 'none' : '';
+    letterBtn.style.display = mode === 'pos' ? 'none' : '';
+    document.getElementById('startBtn').textContent = 'Recommencer';
+    nextTrial();
+  }
+
+  function stop() {
+    running = false;
+    timeouts.forEach(clearTimeout);
+    timeouts = [];
+    cells.forEach(c => { c.classList.remove('lit'); c.textContent = ''; });
+    letterStage.textContent = '';
+  }
+
+  function nextTrial() {
+    // évaluer l'essai qui se termine
+    if (trial >= 0) evaluate();
+    trial++;
+    if (trial >= TRIALS) return finish();
+
+    pressed = { pos: false, let: false };
+    posBtn.disabled = trial < N;
+    letterBtn.disabled = trial < N;
+    [posBtn, letterBtn].forEach(b => b.classList.remove('pressed', 'hit', 'fa'));
+
+    document.getElementById('trialLabel').textContent = (trial + 1) + '/' + TRIALS;
+    document.getElementById('barFill').style.width = ((trial + 1) / TRIALS * 100) + '%';
+
+    // afficher le stimulus
+    const p = seqPos[trial], L = seqLet[trial];
+    if (mode !== 'letter') {
+      cells[p].classList.add('lit');
+      if (mode === 'dual') cells[p].textContent = L;
+    } else {
+      letterStage.textContent = L;
+    }
+    timeouts.push(setTimeout(() => {
+      cells.forEach(c => { c.classList.remove('lit'); c.textContent = ''; });
+      letterStage.textContent = '';
+    }, STIM_MS));
+    timeouts.push(setTimeout(nextTrial, TRIAL_MS));
+  }
+
+  function evaluate() {
+    if (trial < N) return;
+    const posMatch = seqPos[trial] === seqPos[trial - N];
+    const letMatch = seqLet[trial] === seqLet[trial - N];
+    if (mode !== 'letter') {
+      if (posMatch) stats.pos.matches++;
+      if (posMatch && pressed.pos) stats.pos.hits++;
+      else if (posMatch && !pressed.pos) stats.pos.misses++;
+      else if (!posMatch && pressed.pos) stats.pos.fa++;
+    }
+    if (mode !== 'pos') {
+      if (letMatch) stats.let.matches++;
+      if (letMatch && pressed.let) stats.let.hits++;
+      else if (letMatch && !pressed.let) stats.let.misses++;
+      else if (!letMatch && pressed.let) stats.let.fa++;
+    }
+  }
+
+  function press(stream) {
+    if (!running || trial < N) return;
+    const btn = stream === 'pos' ? posBtn : letterBtn;
+    if (pressed[stream]) return;
+    pressed[stream] = true;
+    // retour immédiat : la pression était-elle juste ?
+    const match = stream === 'pos'
+      ? seqPos[trial] === seqPos[trial - N]
+      : seqLet[trial] === seqLet[trial - N];
+    btn.classList.add(match ? 'hit' : 'fa');
+  }
+
+  posBtn.addEventListener('click', () => press('pos'));
+  letterBtn.addEventListener('click', () => press('let'));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'a' || e.key === 'A' || e.key === 'q' || e.key === 'Q') press('pos');
+    if (e.key === 'l' || e.key === 'L') press('let');
+  });
+
+  // ---------- Résultats ----------
+  function finish() {
+    stop();
+    posBtn.disabled = true;
+    letterBtn.disabled = true;
+
+    const rows = [];
+    let totalScore = 0, streams = 0;
+
+    const streamStats = (label, s) => {
+      const attempts = s.matches + s.fa;
+      const acc = s.matches === 0 ? (s.fa === 0 ? 100 : 0)
+        : Math.max(0, Math.round((s.hits - s.fa) / s.matches * 100));
+      totalScore += acc; streams++;
+      rows.push(`<div class="stat-row"><span>${label} · réussites</span><b>${s.hits}/${s.matches}</b></div>`);
+      rows.push(`<div class="stat-row"><span>${label} · oublis</span><b>${s.misses}</b></div>`);
+      rows.push(`<div class="stat-row"><span>${label} · fausses alertes</span><b>${s.fa}</b></div>`);
+    };
+
+    if (mode !== 'letter') streamStats('Positions', stats.pos);
+    if (mode !== 'pos') streamStats('Lettres', stats.let);
+
+    const score = Math.round(totalScore / streams);
+    document.getElementById('scoreBig').innerHTML = score + '<small> %</small>';
+    document.getElementById('statRows').innerHTML = rows.join('');
+    resultsEl.style.display = 'flex';
+
+    statusEl.textContent = score >= 80
+      ? 'Excellent — essayez N = ' + Math.min(3, N + 1) + ' !'
+      : score >= 50 ? 'Bien joué, la régularité paie'
+      : 'Le ' + N + '-back demande de l\u2019entraînement, c\u2019est normal';
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
