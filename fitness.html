@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Assistant Tennis & Forme</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #16a34a;
+            color: #16a34a;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
+
+    <!-- Header / Nav -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-3">
+                <div class="bg-green-600 p-2 rounded-xl text-white">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Tennis & Performance</h1>
+                    <p class="text-xs text-slate-400">Objectif 80 kg & Rotules Blindées</p>
+                </div>
+            </div>
+            <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
+                <span id="current-date-str"></span>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="max-w-4xl mx-auto px-4 flex justify-between border-t border-slate-800 text-sm overflow-x-auto">
+            <button onclick="switchTab('today')" id="tab-today" class="py-3 px-3 active-tab whitespace-nowrap flex items-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4"></i> Aujourd'hui
+            </button>
+            <button onclick="switchTab('workouts')" id="tab-workouts" class="py-3 px-3 whitespace-nowrap flex items-center gap-2 text-slate-400">
+                <i data-lucide="dumbell" class="w-4 h-4"></i> Exercices & Séances
+            </button>
+            <button onclick="switchTab('diet')" id="tab-diet" class="py-3 px-3 whitespace-nowrap flex items-center gap-2 text-slate-400">
+                <i data-lucide="shopping-cart" class="w-4 h-4"></i> Alimentation & Courses
+            </button>
+            <button onclick="switchTab('progress')" id="tab-progress" class="py-3 px-3 whitespace-nowrap flex items-center gap-2 text-slate-400">
+                <i data-lucide="trending-down" class="w-4 h-4"></i> Suivi 100➔80kg
+            </button>
+        </nav>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-6">
+
+        <!-- TAB 1: AUJOURD'HUI (ASSISTANT DU JOUR) -->
+        <section id="content-today" class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="text-xs uppercase font-bold text-green-600 tracking-wider">Programme du jour</span>
+                    <h2 id="day-title" class="text-2xl font-extrabold text-slate-900 mt-1">Chargement...</h2>
+                    <p id="day-subtitle" class="text-sm text-slate-600 mt-1"></p>
+                </div>
+                <div id="day-badge" class="px-4 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-800">
+                    Généré
+                </div>
+            </div>
+
+            <!-- Daily Actions / Checklist -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Sport Action -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 font-bold text-slate-900 mb-3">
+                        <i data-lucide="check-circle" class="text-green-600 w-5 h-5"></i>
+                        <h3>Actions Entraînement</h3>
+                    </div>
+                    <div id="day-workout-details" class="space-y-3 text-sm text-slate-700">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Nutrition Action -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 font-bold text-slate-900 mb-3">
+                        <i data-lucide="utensils" class="text-amber-500 w-5 h-5"></i>
+                        <h3>Stratégie Repas du Jour</h3>
+                    </div>
+                    <div id="day-nutrition-details" class="space-y-3 text-sm text-slate-700">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Checklists -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="list-checks" class="text-blue-600 w-5 h-5"></i>
+                    Checklist Santé & Récupération
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100">
+                        <input type="checkbox" id="chk-water" onchange="saveDailyCheck('water')" class="w-4 h-4 text-green-600 rounded">
+                        <span>Hydratation : 2,5 L d'eau consommés</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100">
+                        <input type="checkbox" id="chk-warmup" onchange="saveDailyCheck('warmup')" class="w-4 h-4 text-green-600 rounded">
+                        <span>Échauffement / Blindage effectué</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100">
+                        <input type="checkbox" id="chk-massage" onchange="saveDailyCheck('massage')" class="w-4 h-4 text-green-600 rounded">
+                        <span>Auto-massage balle (avant-bras / annulaire)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100">
+                        <input type="checkbox" id="chk-protein" onchange="saveDailyCheck('protein')" class="w-4 h-4 text-green-600 rounded">
+                        <span>Apport Protéines respecté (~170g)</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: EXERCICES ET PROGRAMME -->
+        <section id="content-workouts" class="hidden space-y-6">
+            <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-xs text-amber-800 flex items-start gap-3">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                <div>
+                    <strong>Règle d'or Sécurité :</strong> Brûlure musculaire = OUI. Douleur articulaire (rotule/épaule) = NON. En cas de douleur rotulienne sur la chaise ou les sauts, réduis l'amplitude ou passe sur l'élévation jambe tendue.
+                </div>
+            </div>
+
+            <!-- Échauffement -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-900 text-white p-4 font-bold flex justify-between items-center">
+                    <span>1. Routine d'Échauffement & Blindage (10 min)</span>
+                    <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full">Obligatoire</span>
+                </div>
+                <div class="p-4 divide-y divide-slate-100 text-sm space-y-3 divide-y-0">
+                    <div class="pt-2"><strong>Z-Sit (Tailleur / Côté) :</strong> 15 rep/côté. Tente d'asseoir les 2 fesses au sol pour la mobilité de hanche.</div>
+                    <div class="pt-2"><strong>Arabesque / Hip Airplane :</strong> 15 ouvertures/côté (mains au mur). Active le moyen fessier.</div>
+                    <div class="pt-2"><strong>Chien qui pisse :</strong> 30 sec/jambe. Rotations de hanches.</div>
+                    <div class="pt-2"><strong>TKE (Extension Terminale du Genou) :</strong> 2 x 15 rep (*Élastique 10kg derrière le genou*). Pousse vers l'arrière et contracte le vaste interne 3s.</div>
+                    <div class="pt-2"><strong>La Palourde (Clamshell) :</strong> 2 x 15 rep (*Élastique 10kg aux genoux*). Maintien 2s en haut.</div>
+                </div>
+            </div>
+
+            <!-- Séance A -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-green-700 text-white p-4 font-bold flex justify-between items-center">
+                    <span>Séance A : Ancrage Genoux, Force & Rotule (Lundi)</span>
+                    <span class="text-xs bg-green-800 text-white px-2.5 py-1 rounded-full">Force & Stabilité</span>
+                </div>
+                <div class="p-4 space-y-4 text-sm">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">1. Front Squat "Casse-Noisette" — 4 x 8 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 30kg sous les pieds + coussin écrasé entre les genoux. Pause 3s en bas. Garde une amplitude confortable sans douleur rotulienne.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">2. Rowing Bûcheron unilatéral — 3 x 12 reps / bras</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 20kg sous le pied. Main sur chaise, tire le coude vers le ciel. Renforce le grand dorsal pour le service.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">3. Sauts 2 pieds vers 1 pied — 3 x 10 sauts / jambe</div>
+                        <p class="text-slate-600 text-xs mt-1">Arrivée genou fléchi bien orienté vers l'extérieur. Amortis avec fessiers.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">4. Face Pull à la porte — 3 x 15 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 10kg ancré hauteur des yeux. Tire vers le nez en écarte les coudes.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">5. Rotation externe sur le flanc — 3 x 12 reps / bras</div>
+                        <p class="text-slate-600 text-xs mt-1">Bouteille 1.5L ou haltère léger. Coude collé au flanc.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">6. Le Commando — 3 x 45 secondes</div>
+                        <p class="text-slate-600 text-xs mt-1">Planche bras tendus vers coudes. Gainage profond.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Séance B -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-blue-700 text-white p-4 font-bold flex justify-between items-center">
+                    <span>Séance B : Agilité, Vitesse & Gainage Anti-Rotation (Mercredi)</span>
+                    <span class="text-xs bg-blue-800 text-white px-2.5 py-1 rounded-full">Vitesse & Cardio</span>
+                </div>
+                <div class="p-4 space-y-4 text-sm">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">1. Footwork In/Out dans un cercle — 4 x 30s (10s repos)</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 10kg au-dessus des genoux. Rythme In-In / Out-Out rapide sur pointe de pieds.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">2. Déplacements latéraux fléchis — 3 x 15 reps / côté</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 10kg ou 20kg aux genoux. Pousse toujours genoux vers l'extérieur.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">3. Développé "Punch" unilatéral — 3 x 12 reps / bras</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 20kg ancré à la porte dans ton dos. Pousse droit devant façon coup de poing.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">4. Élévations au-dessus de la tête — 3 x 10 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 10kg aux poignets. Monte bras tendus en poussant vers l'extérieur (pause 3s en haut).</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">5. Pallof Press (Anti-rotation) — 3 x 10 reps / côté</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 10kg à la porte. Tends les bras devant toi et résiste pendant 5s sans tourner le buste.</p>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                        <div class="font-bold text-amber-900">🔥 FINISH CARDIO : Tabata Express (8 min)</div>
+                        <p class="text-amber-800 text-xs mt-1">20s effort / 10s repos (x16). Enchaîne Fast Feet, Mountain Climber surélevé sur chaise, Step Jacks.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Séance C -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-purple-700 text-white p-4 font-bold flex justify-between items-center">
+                    <span>Séance C : Chaîne Postérieure, Épaules & Endurance (Vendredi)</span>
+                    <span class="text-xs bg-purple-800 text-white px-2.5 py-1 rounded-full">Explosivité</span>
+                </div>
+                <div class="p-4 space-y-4 text-sm">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">1. Soulevé de Terre Roumain (RDL) — 4 x 10 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 30kg sous les pieds. Recule fesses, jambes quasi tendues, dos plat. Renforce ischios (frein du genou).</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">2. Développé Épaules Vertical — 3 x 12 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 10kg sous les pieds, pousse les poignets vers le ciel.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">3. Pont Fessier Unilatéral sur talon — 3 x 12 reps / jambe</div>
+                        <p class="text-slate-600 text-xs mt-1">Une jambe en l'air, pousse sur le talon au sol pour monter le bassin haut.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">4. Tirage bras tendus le long des côtes — 3 x 15 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 20kg à la porte. Ramène les coudes pliés le long du corps.</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="font-bold text-slate-900">5. Élevations omoplates au sol — 3 x 15 reps</div>
+                        <p class="text-slate-600 text-xs mt-1">Ventre au sol, lève les coudes vers le ciel et serre fort les omoplates.</p>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                        <div class="font-bold text-amber-900">🔥 FINISH CARDIO : Cardio Spécial Tennis (15 min)</div>
+                        <p class="text-amber-800 text-xs mt-1">30s effort / 30s marche. Alternance Shadow Tennis (coups droits/revers), Skater Jumps contrôlés, Fast Feet.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: ALIMENTATION ET COURSES -->
+        <section id="content-diet" class="hidden space-y-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-slate-900 text-lg mb-2">Stratégie Calories & Protéines</h3>
+                <p class="text-sm text-slate-600 mb-4">Objectif 2100 - 2200 kcal/jour (~170g de protéines). Maintien des 2 grands repas (Midi & Soir) + 1 snack anti-fringale à 16h30.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="p-4 rounded-xl bg-green-50 border border-green-200">
+                        <span class="font-bold text-green-900">🎾 Jour de Tennis / Cardio</span>
+                        <ul class="list-disc list-inside text-xs text-green-800 mt-2 space-y-1">
+                            <li>Midi : 1/3 Féculents, 1/3 Protéines, 1/3 Légumes.</li>
+                            <li>Collation 16h30 : 1 banane ou 1 tartine confiture (30 min avant le tennis).</li>
+                            <li>Soir : 1/2 Légumes, 1/4 Protéines, 1/4 Féculents (recharge).</li>
+                        </ul>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-100 border border-slate-200">
+                        <span class="font-bold text-slate-900">🌿 Jour de Repos</span>
+                        <ul class="list-disc list-inside text-xs text-slate-700 mt-2 space-y-1">
+                            <li>Midi : 1/2 Légumes, 1/4 Protéines, 1/4 Féculents.</li>
+                            <li>Collation 16h30 : 200g Skyr / Fromage blanc 0% + poignée fruits rouges.</li>
+                            <li>Soir : 1/2 Légumes, 1/2 Protéines (saumon/œufs), **Zéro féculent**.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste de courses interactive -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-900 text-lg flex items-center gap-2">
+                        <i data-lucide="shopping-bag" class="text-green-600 w-5 h-5"></i>
+                        Liste de Courses Hebdomadaire
+                    </h3>
+                    <button onclick="resetGroceryList()" class="text-xs text-slate-500 hover:text-red-600 underline">Réinitialiser cochage</button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                    <!-- Protéines -->
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-2 border-b pb-1 text-green-700">🍗 Protéines Minceur</h4>
+                        <div class="space-y-2 text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-1" onchange="saveGrocery('g-1')" class="rounded"> Escalopes de poulet / dinde (600g)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-2" onchange="saveGrocery('g-2')" class="rounded"> Steaks hachés 5% M.G. (4 pavés)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-3" onchange="saveGrocery('g-3')" class="rounded"> Pavés de saumon ou maquereau (400g)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-4" onchange="saveGrocery('g-4')" class="rounded"> Filets de cabillaud / colin (400g)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-5" onchange="saveGrocery('g-5')" class="rounded"> Boîte de 12 ou 18 Œufs frais</label>
+                        </div>
+                    </div>
+
+                    <!-- Produits laitiers & Snacks -->
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-2 border-b pb-1 text-blue-700">🥛 Produits Laitiers & Snacks</h4>
+                        <div class="space-y-2 text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-6" onchange="saveGrocery('g-6')" class="rounded"> Pots de Skyr ou Fromage Blanc 0% (1 kg)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-7" onchange="saveGrocery('g-7')" class="rounded"> Amandes / Noix brutes (200g)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-8" onchange="saveGrocery('g-8')" class="rounded"> Fruits rouges surgelés (myrtilles/framboises)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-9" onchange="saveGrocery('g-9')" class="rounded"> Bananes & Pommes</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-10" onchange="saveGrocery('g-10')" class="rounded"> Chocolat noir 85% minimum</label>
+                        </div>
+                    </div>
+
+                    <!-- Féculents -->
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-2 border-b pb-1 text-amber-700">🌾 Féculents à IG Bas</h4>
+                        <div class="space-y-2 text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-11" onchange="saveGrocery('g-11')" class="rounded"> Riz Basmati ou Thaï</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-12" onchange="saveGrocery('g-12')" class="rounded"> Patates douces</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-13" onchange="saveGrocery('g-13')" class="rounded"> Quinoa / Lentilles corail</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-14" onchange="saveGrocery('g-14')" class="rounded"> Flocons d'avoine complets</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-15" onchange="saveGrocery('g-15')" class="rounded"> Pain complet au levain</label>
+                        </div>
+                    </div>
+
+                    <!-- Légumes -->
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-2 border-b pb-1 text-emerald-700">🥦 Légumes à Volonté</h4>
+                        <div class="space-y-2 text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-16" onchange="saveGrocery('g-16')" class="rounded"> Courgettes & Poivrons</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-17" onchange="saveGrocery('g-17')" class="rounded"> Haricots verts (frais ou surgelés)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-18" onchange="saveGrocery('g-18')" class="rounded"> Épinards frais & Brocolis</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-19" onchange="saveGrocery('g-19')" class="rounded"> Avocats (1-2 pour bons gras)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="g-20" onchange="saveGrocery('g-20')" class="rounded"> Huile d'olive Vierge Extra</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SUIVI DE POIDS ET OBJECTIFS -->
+        <section id="content-progress" class="hidden space-y-6">
+            <!-- Summary card -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
+                <span class="text-xs uppercase font-bold text-slate-400">Progression Globale</span>
+                <div class="text-4xl font-extrabold text-slate-900 mt-2"><span id="current-weight-display">100.0</span> kg</div>
+                <p class="text-xs text-slate-500 mt-1">Départ : 100 kg ➔ Étape 1 (Janvier 2027) : 92 kg ➔ Objectif : 80 kg</p>
+                
+                <!-- Progress bar -->
+                <div class="w-full bg-slate-100 rounded-full h-3 mt-4 overflow-hidden border border-slate-200">
+                    <div id="progress-bar-fill" class="bg-green-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>100 kg</span>
+                    <span>92 kg (Jan. 2027)</span>
+                    <span>80 kg (Final)</span>
+                </div>
+            </div>
+
+            <!-- Form log weight -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-slate-900 mb-3">Enregistrer une pesée (Chaque vendredi)</h3>
+                <form onsubmit="addWeightEntry(event)" class="flex flex-col sm:flex-row gap-3">
+                    <input type="date" id="weight-date" required class="p-2.5 border rounded-xl text-sm border-slate-300">
+                    <input type="number" step="0.1" id="weight-val" placeholder="Poids en kg (ex: 98.5)" required class="p-2.5 border rounded-xl text-sm border-slate-300 flex-1">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition">Ajouter</button>
+                </form>
+            </div>
+
+            <!-- History table -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-slate-900 mb-3">Historique des pesées</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-400 text-xs">
+                                <th class="pb-2">Date</th>
+                                <th class="pb-2">Poids</th>
+                                <th class="pb-2">Évolution</th>
+                                <th class="pb-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weight-history-rows" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- JS filled -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Init Lucide Icons
+        lucide.createIcons();
+
+        // Application State
+        const DAYS_MAP = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+        
+        // Tab switching
+        function switchTab(tabName) {
+            ['today', 'workouts', 'diet', 'progress'].forEach(t => {
+                document.getElementById(`content-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('active-tab');
+                document.getElementById(`tab-${t}`).classList.add('text-slate-400');
+            });
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('active-tab');
+            document.getElementById(`tab-${tabName}`).classList.remove('text-slate-400');
+        }
+
+        // Today's Logic
+        function loadTodayView() {
+            const now = new Date();
+            const dayIdx = now.getDay(); // 0 = Dim, 1 = Lun, etc.
+            const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('current-date-str').innerText = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+
+            const dayTitle = document.getElementById('day-title');
+            const daySub = document.getElementById('day-subtitle');
+            const dayWorkout = document.getElementById('day-workout-details');
+            const dayNutri = document.getElementById('day-nutrition-details');
+            const dayBadge = document.getElementById('day-badge');
+
+            if (dayIdx === 1) { // Lundi
+                dayTitle.innerText = "Lundi — Séance A (Ancrage & Rotule)";
+                daySub.innerText = "Focus : Quadriceps (Casse-noisette), dos et prévention rotulienne.";
+                dayBadge.innerText = "Jour de Renforcement";
+                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-800";
+                
+                dayWorkout.innerHTML = `
+                    <p><strong>Routine :</strong> Échauffement Z-Sit, Arabesque, TKE (10kg) et Clamshell.</p>
+                    <p><strong>Main Workout :</strong> Front Squat coussin (30kg), Rowing Bûcheron (20kg), Sauts 2➔1, Face Pull (10kg), Rotation externe (1.5L), Commando.</p>
+                `;
+                dayNutri.innerHTML = `
+                    <p><strong>Type :</strong> Jour de Maintien / Effort.</p>
+                    <p><strong>Repas :</strong> Midi (1/3 féculents, 1/3 protéine, 1/3 légumes). Soir (1/2 légumes, 1/4 protéine, 1/4 féculents).</p>
+                `;
+            } else if (dayIdx === 3) { // Mercredi
+                dayTitle.innerText = "Mercredi — Séance B (Agilité & Tabata)";
+                daySub.innerText = "Focus : Appuis tennis, anti-rotation et brûlage de graisse.";
+                dayBadge.innerText = "Jour d'Agilité & Cardio";
+                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-blue-100 text-blue-800";
+
+                dayWorkout.innerHTML = `
+                    <p><strong>Routine :</strong> Échauffement complet + TKE et Clamshell.</p>
+                    <p><strong>Main Workout :</strong> Footwork In/Out (10kg), Pas latéraux, Développé Punch (20kg), Élévations poignets, Pallof Press (10kg).</p>
+                    <p>🔥 <strong>Finish :</strong> Tabata 8 min (20s/10s x 16 rounds).</p>
+                `;
+                dayNutri.innerHTML = `
+                    <p><strong>Type :</strong> Jour Cardio & Sèche.</p>
+                    <p><strong>Repas :</strong> Snack 16h30 (200g Skyr + fruits rouges). Soir sans féculents excédentaires.</p>
+                `;
+            } else if (dayIdx === 5) { // Vendredi
+                dayTitle.innerText = "Vendredi — Séance C (Chaîne Postérieure & Cardio 15m)";
+                daySub.innerText = "Focus : Ischios (RDL 30kg), épaules et cardio spécial tennis.";
+                dayBadge.innerText = "Jour de Puissance & Cardio";
+                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-purple-100 text-purple-800";
+
+                dayWorkout.innerHTML = `
+                    <p><strong>Routine :</strong> Échauffement complet + TKE.</p>
+                    <p><strong>Main Workout :</strong> RDL (30kg), Développé épaules (10kg), Pont fessier unilatéral, Tirage côtes, Élévations omoplates sol.</p>
+                    <p>🔥 <strong>Finish :</strong> Cardio Tennis 15 min (30s/30s Shadow Tennis & Fast Feet).</p>
+                `;
+                dayNutri.innerHTML = `
+                    <p><strong>Type :</strong> Jour de Pesée & Sèche.</p>
+                    <p><strong>Pesée :</strong> Enregistre ton poids à jeun ce matin dans l'onglet Suivi !</p>
+                `;
+            } else if (dayIdx === 2 || dayIdx === 4 || dayIdx === 6) { // Mar / Jeu / Sam
+                dayTitle.innerText = `${DAYS_MAP[dayIdx]} — Tennis ou Repos Actif`;
+                daySub.innerText = "Focus : Jeu sur le court ou récupération articulaire.";
+                dayBadge.innerText = "Jour de Tennis / Repos";
+                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-amber-100 text-amber-800";
+
+                dayWorkout.innerHTML = `
+                    <p><strong>Sur le court :</strong> Pense au relâchement du poignet et au manche bien adapté (surgrip ultra-fin si besoin).</p>
+                    <p><strong>Le soir :</strong> Auto-massage balle de tennis sur l'avant-bras (2 min) + 3x15 extensions de doigts à l'élastique.</p>
+                `;
+                dayNutri.innerHTML = `
+                    <p><strong>Type :</strong> Jour de Match / Entraînement.</p>
+                    <p><strong>Hydratation :</strong> 2.5L d'eau minimum. Snack 30 min avant tennis : 1 banane ou 1 tartine confiture.</p>
+                `;
+            } else { // Dimanche
+                dayTitle.innerText = "Dimanche — Repos Complet & Préparation";
+                daySub.innerText = "Focus : Récupération musculaire et liste de courses.";
+                dayBadge.innerText = "Repos Complet";
+                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 text-slate-800";
+
+                dayWorkout.innerHTML = `
+                    <p>Pas d'entraînement aujourd'hui. Laisse tes tendons se réparer.</p>
+                    <p>Profites-en pour marcher un peu et détendre tes jambes.</p>
+                `;
+                dayNutri.innerHTML = `
+                    <p>Prépare tes courses pour la semaine grâce à l'onglet "Alimentation & Courses".</p>
+                `;
+            }
+
+            // Load saved checkboxes for today
+            const todayDateKey = now.toISOString().split('T')[0];
+            ['water', 'warmup', 'massage', 'protein'].forEach(item => {
+                const checked = localStorage.getItem(`chk_${item}_${todayDateKey}`) === 'true';
+                document.getElementById(`chk-${item}`).checked = checked;
+            });
+        }
+
+        function saveDailyCheck(key) {
+            const todayDateKey = new Date().toISOString().split('T')[0];
+            const val = document.getElementById(`chk-${key}`).checked;
+            localStorage.setItem(`chk_${key}_${todayDateKey}`, val);
+        }
+
+        // Grocery checkboxes persistence
+        function saveGrocery(id) {
+            const checked = document.getElementById(id).checked;
+            localStorage.setItem(`grocery_${id}`, checked);
+        }
+
+        function loadGroceryList() {
+            for (let i = 1; i <= 20; i++) {
+                const el = document.getElementById(`g-${i}`);
+                if (el) {
+                    const checked = localStorage.getItem(`grocery_g-${i}`) === 'true';
+                    el.checked = checked;
+                }
+            }
+        }
+
+        function resetGroceryList() {
+            for (let i = 1; i <= 20; i++) {
+                const el = document.getElementById(`g-${i}`);
+                if (el) {
+                    el.checked = false;
+                    localStorage.removeItem(`grocery_g-${i}`);
+                }
+            }
+        }
+
+        // Weight tracking
+        let weightHistory = JSON.parse(localStorage.getItem('tennis_weight_history')) || [
+            { date: '2026-10-01', weight: 100.0 }
+        ];
+
+        function addWeightEntry(e) {
+            e.preventDefault();
+            const date = document.getElementById('weight-date').value;
+            const weight = parseFloat(document.getElementById('weight-val').value);
+
+            if (date && !isNaN(weight)) {
+                weightHistory.push({ date, weight });
+                weightHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+                localStorage.setItem('tennis_weight_history', JSON.stringify(weightHistory));
+                renderWeightTracker();
+                document.getElementById('weight-val').value = '';
+            }
+        }
+
+        function deleteWeightEntry(idx) {
+            weightHistory.splice(idx, 1);
+            localStorage.setItem('tennis_weight_history', JSON.stringify(weightHistory));
+            renderWeightTracker();
+        }
+
+        function renderWeightTracker() {
+            const rowsEl = document.getElementById('weight-history-rows');
+            rowsEl.innerHTML = '';
+
+            if (weightHistory.length === 0) return;
+
+            const current = weightHistory[weightHistory.length - 1].weight;
+            document.getElementById('current-weight-display').innerText = current.toFixed(1);
+
+            // Progress bar calc (100 -> 80 is 20kg range)
+            const lost = 100 - current;
+            const pct = Math.min(Math.max((lost / 20) * 100, 0), 100);
+            document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+
+            weightHistory.forEach((entry, idx) => {
+                const prevWeight = idx > 0 ? weightHistory[idx - 1].weight : 100.0;
+                const diff = (entry.weight - prevWeight).toFixed(1);
+                const diffStr = diff > 0 ? `+${diff} kg` : `${diff} kg`;
+                const diffClass = diff <= 0 ? 'text-green-600 font-bold' : 'text-red-500';
+
+                const tr = document.createElement('tr');
+                tr.className = "py-2";
+                tr.innerHTML = `
+                    <td class="py-2.5">${entry.date}</td>
+                    <td class="font-bold">${entry.weight.toFixed(1)} kg</td>
+                    <td class="${diffClass}">${diffStr}</td>
+                    <td class="text-right"><button onclick="deleteWeightEntry(${idx})" class="text-slate-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4 inline"></i></button></td>
+                `;
+                rowsEl.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('weight-date').value = new Date().toISOString().split('T')[0];
+            loadTodayView();
+            loadGroceryList();
+            renderWeightTracker();
+        });
+    </script>
+</body>
+</html>
