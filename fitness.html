@@ -41,7 +41,7 @@
                 <i data-lucide="calendar" class="w-4 h-4"></i> Aujourd'hui
             </button>
             <button onclick="switchTab('workouts')" id="tab-workouts" class="py-3 px-3 whitespace-nowrap flex items-center gap-2 text-slate-400">
-                <i data-lucide="dumbell" class="w-4 h-4"></i> Exercices & Séances
+                <i data-lucide="dumbbell" class="w-4 h-4"></i> Exercices & Séances
             </button>
             <button onclick="switchTab('diet')" id="tab-diet" class="py-3 px-3 whitespace-nowrap flex items-center gap-2 text-slate-400">
                 <i data-lucide="shopping-cart" class="w-4 h-4"></i> Alimentation & Courses
@@ -56,27 +56,56 @@
 
         <!-- TAB 1: AUJOURD'HUI (ASSISTANT DU JOUR) -->
         <section id="content-today" class="space-y-6">
+
+            <!-- SELECTEUR DE MODE FLEXIBLE -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <span class="text-xs uppercase font-bold text-slate-400 mb-3 block">👉 Choisis ton programme pour aujourd'hui</span>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button onclick="setDayMode('workout')" id="btn-mode-workout" class="p-3.5 rounded-xl border text-sm font-bold flex flex-col items-center gap-1 transition">
+                        <span>🏋️ Séance Renforcement</span>
+                        <span class="text-xs font-normal text-slate-500">Séance A, B ou C</span>
+                    </button>
+                    <button onclick="setDayMode('tennis')" id="btn-mode-tennis" class="p-3.5 rounded-xl border text-sm font-bold flex flex-col items-center gap-1 transition">
+                        <span>🎾 Match / Tennis</span>
+                        <span class="text-xs font-normal text-slate-500">Jeu sur le court</span>
+                    </button>
+                    <button onclick="setDayMode('rest')" id="btn-mode-rest" class="p-3.5 rounded-xl border text-sm font-bold flex flex-col items-center gap-1 transition">
+                        <span>🌿 Repos Complet</span>
+                        <span class="text-xs font-normal text-slate-500">Récupération</span>
+                    </button>
+                </div>
+
+                <!-- Sous-sélection de la séance si "Renforcement" est sélectionné -->
+                <div id="workout-subselector" class="hidden mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-center gap-2">
+                    <span class="text-xs text-slate-500 font-medium mr-1">Quelle séance ?</span>
+                    <button onclick="setWorkoutType('A')" id="btn-type-A" class="px-3 py-1.5 rounded-lg border text-xs font-bold transition">Séance A (Force/Rotule)</button>
+                    <button onclick="setWorkoutType('B')" id="btn-type-B" class="px-3 py-1.5 rounded-lg border text-xs font-bold transition">Séance B (Agilité/Tabata)</button>
+                    <button onclick="setWorkoutType('C')" id="btn-type-C" class="px-3 py-1.5 rounded-lg border text-xs font-bold transition">Séance C (Ischios/Cardio15)</button>
+                </div>
+            </div>
+
+            <!-- Card Récapitulatif du Jour -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <span class="text-xs uppercase font-bold text-green-600 tracking-wider">Programme du jour</span>
+                    <span class="text-xs uppercase font-bold text-green-600 tracking-wider">Programme Sélectionné</span>
                     <h2 id="day-title" class="text-2xl font-extrabold text-slate-900 mt-1">Chargement...</h2>
                     <p id="day-subtitle" class="text-sm text-slate-600 mt-1"></p>
                 </div>
                 <div id="day-badge" class="px-4 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-800">
-                    Généré
+                    Mode Actif
                 </div>
             </div>
 
-            <!-- Daily Actions / Checklist -->
+            <!-- Actions / Checklist du Jour -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Sport Action -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center gap-2 font-bold text-slate-900 mb-3">
                         <i data-lucide="check-circle" class="text-green-600 w-5 h-5"></i>
-                        <h3>Actions Entraînement</h3>
+                        <h3>Actions Sport du Jour</h3>
                     </div>
                     <div id="day-workout-details" class="space-y-3 text-sm text-slate-700">
-                        <!-- Filled by JS -->
+                        <!-- JS filled -->
                     </div>
                 </div>
 
@@ -87,12 +116,12 @@
                         <h3>Stratégie Repas du Jour</h3>
                     </div>
                     <div id="day-nutrition-details" class="space-y-3 text-sm text-slate-700">
-                        <!-- Filled by JS -->
+                        <!-- JS filled -->
                     </div>
                 </div>
             </div>
 
-            <!-- Daily Checklists -->
+            <!-- Checklists quotidiennes -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                 <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <i data-lucide="list-checks" class="text-blue-600 w-5 h-5"></i>
@@ -132,10 +161,10 @@
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-slate-900 text-white p-4 font-bold flex justify-between items-center">
                     <span>1. Routine d'Échauffement & Blindage (10 min)</span>
-                    <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full">Obligatoire</span>
+                    <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full">Avant chaque séance</span>
                 </div>
-                <div class="p-4 divide-y divide-slate-100 text-sm space-y-3 divide-y-0">
-                    <div class="pt-2"><strong>Z-Sit (Tailleur / Côté) :</strong> 15 rep/côté. Tente d'asseoir les 2 fesses au sol pour la mobilité de hanche.</div>
+                <div class="p-4 space-y-3 text-sm divide-y divide-slate-100">
+                    <div class="pt-2"><strong>Z-Sit (Tailleur / Côté) :</strong> 15 rep/côté. Tente d'asseoir les 2 fesses au sol.</div>
                     <div class="pt-2"><strong>Arabesque / Hip Airplane :</strong> 15 ouvertures/côté (mains au mur). Active le moyen fessier.</div>
                     <div class="pt-2"><strong>Chien qui pisse :</strong> 30 sec/jambe. Rotations de hanches.</div>
                     <div class="pt-2"><strong>TKE (Extension Terminale du Genou) :</strong> 2 x 15 rep (*Élastique 10kg derrière le genou*). Pousse vers l'arrière et contracte le vaste interne 3s.</div>
@@ -146,7 +175,7 @@
             <!-- Séance A -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-green-700 text-white p-4 font-bold flex justify-between items-center">
-                    <span>Séance A : Ancrage Genoux, Force & Rotule (Lundi)</span>
+                    <span>Séance A : Ancrage Genoux, Force & Rotule</span>
                     <span class="text-xs bg-green-800 text-white px-2.5 py-1 rounded-full">Force & Stabilité</span>
                 </div>
                 <div class="p-4 space-y-4 text-sm">
@@ -180,7 +209,7 @@
             <!-- Séance B -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-blue-700 text-white p-4 font-bold flex justify-between items-center">
-                    <span>Séance B : Agilité, Vitesse & Gainage Anti-Rotation (Mercredi)</span>
+                    <span>Séance B : Agilité, Vitesse & Gainage Anti-Rotation</span>
                     <span class="text-xs bg-blue-800 text-white px-2.5 py-1 rounded-full">Vitesse & Cardio</span>
                 </div>
                 <div class="p-4 space-y-4 text-sm">
@@ -214,7 +243,7 @@
             <!-- Séance C -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-purple-700 text-white p-4 font-bold flex justify-between items-center">
-                    <span>Séance C : Chaîne Postérieure, Épaules & Endurance (Vendredi)</span>
+                    <span>Séance C : Chaîne Postérieure, Épaules & Endurance</span>
                     <span class="text-xs bg-purple-800 text-white px-2.5 py-1 rounded-full">Explosivité</span>
                 </div>
                 <div class="p-4 space-y-4 text-sm">
@@ -232,7 +261,7 @@
                     </div>
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                         <div class="font-bold text-slate-900">4. Tirage bras tendus le long des côtes — 3 x 15 reps</div>
-                        <p class="text-slate-600 text-xs mt-1">Élastique 20kg à la porte. Ramène les coudes pliés le long du corps.</p>
+                        <p class="text-slate-600 text-xs mt-1">Élastique 20kg ancré à la porte. Ramène les coudes pliés le long du corps.</p>
                     </div>
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                         <div class="font-bold text-slate-900">5. Élevations omoplates au sol — 3 x 15 reps</div>
@@ -254,7 +283,7 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div class="p-4 rounded-xl bg-green-50 border border-green-200">
-                        <span class="font-bold text-green-900">🎾 Jour de Tennis / Cardio</span>
+                        <span class="font-bold text-green-900">🎾 Jour de Tennis / Effort Intensif</span>
                         <ul class="list-disc list-inside text-xs text-green-800 mt-2 space-y-1">
                             <li>Midi : 1/3 Féculents, 1/3 Protéines, 1/3 Légumes.</li>
                             <li>Collation 16h30 : 1 banane ou 1 tartine confiture (30 min avant le tennis).</li>
@@ -262,7 +291,7 @@
                         </ul>
                     </div>
                     <div class="p-4 rounded-xl bg-slate-100 border border-slate-200">
-                        <span class="font-bold text-slate-900">🌿 Jour de Repos</span>
+                        <span class="font-bold text-slate-900">🌿 Jour de Repos / Sèche</span>
                         <ul class="list-disc list-inside text-xs text-slate-700 mt-2 space-y-1">
                             <li>Midi : 1/2 Légumes, 1/4 Protéines, 1/4 Féculents.</li>
                             <li>Collation 16h30 : 200g Skyr / Fromage blanc 0% + poignée fruits rouges.</li>
@@ -391,8 +420,9 @@
         lucide.createIcons();
 
         // Application State
-        const DAYS_MAP = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-        
+        let currentMode = 'workout'; // 'workout', 'tennis', 'rest'
+        let currentWorkoutType = 'A'; // 'A', 'B', 'C'
+
         // Tab switching
         function switchTab(tabName) {
             ['today', 'workouts', 'diet', 'progress'].forEach(t => {
@@ -405,93 +435,135 @@
             document.getElementById(`tab-${tabName}`).classList.remove('text-slate-400');
         }
 
-        // Today's Logic
-        function loadTodayView() {
+        // Set Day Mode (Workout / Tennis / Rest)
+        function setDayMode(mode) {
+            currentMode = mode;
+            const todayDateKey = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`day_mode_${todayDateKey}`, mode);
+            renderTodayView();
+        }
+
+        // Set Workout Subtype (A / B / C)
+        function setWorkoutType(type) {
+            currentWorkoutType = type;
+            const todayDateKey = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`workout_type_${todayDateKey}`, type);
+            renderTodayView();
+        }
+
+        // Render Today View based on state
+        function renderTodayView() {
             const now = new Date();
-            const dayIdx = now.getDay(); // 0 = Dim, 1 = Lun, etc.
             const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('current-date-str').innerText = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 
+            // Update UI Selectors styling
+            ['workout', 'tennis', 'rest'].forEach(m => {
+                const btn = document.getElementById(`btn-mode-${m}`);
+                if (m === currentMode) {
+                    btn.className = "p-3.5 rounded-xl border-2 border-green-600 bg-green-50 text-green-900 font-bold flex flex-col items-center gap-1 shadow-sm";
+                } else {
+                    btn.className = "p-3.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold flex flex-col items-center gap-1 hover:bg-slate-50";
+                }
+            });
+
+            const subselector = document.getElementById('workout-subselector');
+            if (currentMode === 'workout') {
+                subselector.classList.remove('hidden');
+                ['A', 'B', 'C'].forEach(t => {
+                    const btn = document.getElementById(`btn-type-${t}`);
+                    if (t === currentWorkoutType) {
+                        btn.className = "px-3.5 py-1.5 rounded-lg border-2 border-green-600 bg-green-600 text-white font-bold text-xs shadow-sm";
+                    } else {
+                        btn.className = "px-3.5 py-1.5 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200";
+                    }
+                });
+            } else {
+                subselector.classList.add('hidden');
+            }
+
+            // Fill details
             const dayTitle = document.getElementById('day-title');
             const daySub = document.getElementById('day-subtitle');
             const dayWorkout = document.getElementById('day-workout-details');
             const dayNutri = document.getElementById('day-nutrition-details');
             const dayBadge = document.getElementById('day-badge');
 
-            if (dayIdx === 1) { // Lundi
-                dayTitle.innerText = "Lundi — Séance A (Ancrage & Rotule)";
-                daySub.innerText = "Focus : Quadriceps (Casse-noisette), dos et prévention rotulienne.";
-                dayBadge.innerText = "Jour de Renforcement";
-                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-800";
-                
-                dayWorkout.innerHTML = `
-                    <p><strong>Routine :</strong> Échauffement Z-Sit, Arabesque, TKE (10kg) et Clamshell.</p>
-                    <p><strong>Main Workout :</strong> Front Squat coussin (30kg), Rowing Bûcheron (20kg), Sauts 2➔1, Face Pull (10kg), Rotation externe (1.5L), Commando.</p>
-                `;
-                dayNutri.innerHTML = `
-                    <p><strong>Type :</strong> Jour de Maintien / Effort.</p>
-                    <p><strong>Repas :</strong> Midi (1/3 féculents, 1/3 protéine, 1/3 légumes). Soir (1/2 légumes, 1/4 protéine, 1/4 féculents).</p>
-                `;
-            } else if (dayIdx === 3) { // Mercredi
-                dayTitle.innerText = "Mercredi — Séance B (Agilité & Tabata)";
-                daySub.innerText = "Focus : Appuis tennis, anti-rotation et brûlage de graisse.";
-                dayBadge.innerText = "Jour d'Agilité & Cardio";
-                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-blue-100 text-blue-800";
+            if (currentMode === 'workout') {
+                if (currentWorkoutType === 'A') {
+                    dayTitle.innerText = "Séance A — Force, Ancrage & Rotule";
+                    daySub.innerText = "Focus : Quadriceps (Front Squat coussin), Grand Dorsal (Rowing) et stabilité de rotule.";
+                    dayBadge.innerText = "Renforcement A";
+                    dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-800";
 
-                dayWorkout.innerHTML = `
-                    <p><strong>Routine :</strong> Échauffement complet + TKE et Clamshell.</p>
-                    <p><strong>Main Workout :</strong> Footwork In/Out (10kg), Pas latéraux, Développé Punch (20kg), Élévations poignets, Pallof Press (10kg).</p>
-                    <p>🔥 <strong>Finish :</strong> Tabata 8 min (20s/10s x 16 rounds).</p>
-                `;
-                dayNutri.innerHTML = `
-                    <p><strong>Type :</strong> Jour Cardio & Sèche.</p>
-                    <p><strong>Repas :</strong> Snack 16h30 (200g Skyr + fruits rouges). Soir sans féculents excédentaires.</p>
-                `;
-            } else if (dayIdx === 5) { // Vendredi
-                dayTitle.innerText = "Vendredi — Séance C (Chaîne Postérieure & Cardio 15m)";
-                daySub.innerText = "Focus : Ischios (RDL 30kg), épaules et cardio spécial tennis.";
-                dayBadge.innerText = "Jour de Puissance & Cardio";
-                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-purple-100 text-purple-800";
+                    dayWorkout.innerHTML = `
+                        <p><strong>Routine (10 min) :</strong> Z-Sit, Arabesque, TKE (élastique 10kg) et Clamshell.</p>
+                        <p><strong>Exercices :</strong> Front Squat coussin (30kg), Rowing Bûcheron (20kg), Sauts 2➔1, Face Pull (10kg), Rotation externe (1.5L), Commando.</p>
+                    `;
+                } else if (currentWorkoutType === 'B') {
+                    dayTitle.innerText = "Séance B — Agilité & Finish Tabata";
+                    daySub.innerText = "Focus : Pieds rapides (Footwork In/Out), gainage anti-rotation et cardio intense.";
+                    dayBadge.innerText = "Renforcement B";
+                    dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-blue-100 text-blue-800";
 
-                dayWorkout.innerHTML = `
-                    <p><strong>Routine :</strong> Échauffement complet + TKE.</p>
-                    <p><strong>Main Workout :</strong> RDL (30kg), Développé épaules (10kg), Pont fessier unilatéral, Tirage côtes, Élévations omoplates sol.</p>
-                    <p>🔥 <strong>Finish :</strong> Cardio Tennis 15 min (30s/30s Shadow Tennis & Fast Feet).</p>
-                `;
+                    dayWorkout.innerHTML = `
+                        <p><strong>Routine (10 min) :</strong> Z-Sit, Arabesque, TKE (10kg) et Clamshell.</p>
+                        <p><strong>Exercices :</strong> Footwork In/Out (10kg), Déplacements latéraux, Développé Punch (20kg), Élévations poignets, Pallof Press (10kg).</p>
+                        <p>🔥 <strong>Finish Cardio :</strong> Tabata 8 min (20s effort / 10s repos x 16).</p>
+                    `;
+                } else {
+                    dayTitle.innerText = "Séance C — Chaîne Postérieure & Cardio 15m";
+                    daySub.innerText = "Focus : Ischios (RDL 30kg), stabilité haute épaules et cardio spécial tennis.";
+                    dayBadge.innerText = "Renforcement C";
+                    dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-purple-100 text-purple-800";
+
+                    dayWorkout.innerHTML = `
+                        <p><strong>Routine (10 min) :</strong> Z-Sit, Arabesque, TKE (10kg) et Clamshell.</p>
+                        <p><strong>Exercices :</strong> RDL (30kg), Développé épaules (10kg), Pont fessier unilatéral, Tirage côtes (20kg), Élévations omoplates.</p>
+                        <p>🔥 <strong>Finish Cardio :</strong> Cardio Spécial Tennis 15 min (30s effort / 30s marche).</p>
+                    `;
+                }
+
                 dayNutri.innerHTML = `
-                    <p><strong>Type :</strong> Jour de Pesée & Sèche.</p>
-                    <p><strong>Pesée :</strong> Enregistre ton poids à jeun ce matin dans l'onglet Suivi !</p>
+                    <p><strong>Type :</strong> Jour d'effort physique (Sèche active).</p>
+                    <p><strong>Repas :</strong> Midi (1/3 féculents, 1/3 protéines, 1/3 légumes). Soir (1/2 légumes, 1/2 protéines, peu ou pas de féculents).</p>
+                    <p><strong>Snack 16h30 :</strong> 200g Skyr / Fromage blanc 0% + poignée fruits rouges.</p>
                 `;
-            } else if (dayIdx === 2 || dayIdx === 4 || dayIdx === 6) { // Mar / Jeu / Sam
-                dayTitle.innerText = `${DAYS_MAP[dayIdx]} — Tennis ou Repos Actif`;
-                daySub.innerText = "Focus : Jeu sur le court ou récupération articulaire.";
-                dayBadge.innerText = "Jour de Tennis / Repos";
+
+            } else if (currentMode === 'tennis') {
+                dayTitle.innerText = "Match / Entraînement de Tennis";
+                daySub.innerText = "Focus : Relâchement de la main, appuis bas et plaisir du jeu !";
+                dayBadge.innerText = "Jour de Tennis";
                 dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-amber-100 text-amber-800";
 
                 dayWorkout.innerHTML = `
-                    <p><strong>Sur le court :</strong> Pense au relâchement du poignet et au manche bien adapté (surgrip ultra-fin si besoin).</p>
-                    <p><strong>Le soir :</strong> Auto-massage balle de tennis sur l'avant-bras (2 min) + 3x15 extensions de doigts à l'élastique.</p>
+                    <p><strong>Sur le court :</strong> Pense à la règle du "petit oiseau" (relâcher la poignée entre les points). Vérifie que ton surgrip n'est pas lisse.</p>
+                    <p><strong>Ce soir (Post-Match) :</strong> 2 min d'auto-massage balle de tennis sur l'avant-bras + 3x15 extensions de doigts à l'élastique pour protéger ton annulaire.</p>
                 `;
                 dayNutri.innerHTML = `
-                    <p><strong>Type :</strong> Jour de Match / Entraînement.</p>
-                    <p><strong>Hydratation :</strong> 2.5L d'eau minimum. Snack 30 min avant tennis : 1 banane ou 1 tartine confiture.</p>
+                    <p><strong>Type :</strong> Jour de Match (Carburant requis).</p>
+                    <p><strong>Snack pré-tennis (16h30) :</strong> 1 banane ou 1 tartine de confiture/pain complet pour recharger le glycogène.</p>
+                    <p><strong>Soir après effort :</strong> Recharges avec 1/4 féculents (riz/patate douce), 1/4 protéines et 1/2 légumes.</p>
                 `;
-            } else { // Dimanche
-                dayTitle.innerText = "Dimanche — Repos Complet & Préparation";
-                daySub.innerText = "Focus : Récupération musculaire et liste de courses.";
+
+            } else { // Rest
+                dayTitle.innerText = "Repos Complet & Récupération";
+                daySub.innerText = "Focus : Réparation des fibres musculaires et régénération des tendons.";
                 dayBadge.innerText = "Repos Complet";
-                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 text-slate-800";
+                dayBadge.className = "px-4 py-2 rounded-xl text-sm font-bold bg-slate-200 text-slate-800";
 
                 dayWorkout.innerHTML = `
-                    <p>Pas d'entraînement aujourd'hui. Laisse tes tendons se réparer.</p>
-                    <p>Profites-en pour marcher un peu et détendre tes jambes.</p>
+                    <p><strong>Pas de séance aujourd'hui :</strong> Laisse tes rotules et tes épaules se reposer.</p>
+                    <p><strong>Activité douce :</strong> Tu peux faire une petite marche de 15-20 min pour activer la circulation sanguine sans impact.</p>
                 `;
                 dayNutri.innerHTML = `
-                    <p>Prépare tes courses pour la semaine grâce à l'onglet "Alimentation & Courses".</p>
+                    <p><strong>Type :</strong> Jour de Repos (Mode Brûle-Graisse).</p>
+                    <p><strong>Stratégie :</strong> Réduction des féculents au strict minimum (repas basés sur légumes + protéines + bons gras).</p>
+                    <p><strong>Snack 16h30 :</strong> Skyr 0% ou poignée d'amandes pures.</p>
                 `;
             }
 
-            // Load saved checkboxes for today
+            // Checkbox state for today
             const todayDateKey = now.toISOString().split('T')[0];
             ['water', 'warmup', 'massage', 'protein'].forEach(item => {
                 const checked = localStorage.getItem(`chk_${item}_${todayDateKey}`) === 'true';
@@ -592,7 +664,16 @@
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('weight-date').value = new Date().toISOString().split('T')[0];
-            loadTodayView();
+            
+            // Restore today's saved mode if present
+            const todayDateKey = new Date().toISOString().split('T')[0];
+            const savedMode = localStorage.getItem(`day_mode_${todayDateKey}`);
+            const savedType = localStorage.getItem(`workout_type_${todayDateKey}`);
+            
+            if (savedMode) currentMode = savedMode;
+            if (savedType) currentWorkoutType = savedType;
+
+            renderTodayView();
             loadGroceryList();
             renderWeightTracker();
         });
